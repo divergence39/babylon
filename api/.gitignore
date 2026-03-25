@@ -1,0 +1,31 @@
+# ==========================================
+# API LAYER .GITIGNORE (Python / FastAPI)
+# ==========================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing, Type Checking & Linting Caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Distribution / Packaging
+dist/
+build/
+*.egg-info/
+
+# Local Databases
+*.sqlite3
+*.db
