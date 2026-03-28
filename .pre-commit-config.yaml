@@ -1,0 +1,30 @@
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        files: ^api/
+      - id: end-of-file-fixer
+        files: ^api/
+      - id: check-yaml
+        files: ^api/
+      - id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.9
+    hooks:
+      - id: ruff
+        args: [ --config=api/pyproject.toml, --fix ]
+        files: ^api/
+      - id: ruff-format
+        args: [ --config=api/pyproject.toml ]
+        files: ^api/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.20.0
+    hooks:
+      - id: mypy
+        args: [ --config-file=api/pyproject.toml ]
+        files: ^api/
+        additional_dependencies: [ fastapi, pydantic ]

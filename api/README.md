@@ -11,7 +11,7 @@ This service acts exclusively as a blind storage vault. Its sole responsibility 
 
 ## 🛠️ Tech Stack & Tooling
 - **Core Framework:** FastAPI
-- **Language:** Python 3.x
+- **Language:** Python 3.14.3
 - *Database & ORM: TBD*
 - *Dependency Management: TBD*
 
