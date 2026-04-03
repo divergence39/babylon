@@ -1,0 +1,7 @@
+# For Stage 0 (Local Development), we bind to localhost.
+# In production, you would simply change this to your actual domain (e.g., api.yourdomain.com),
+# and Caddy would automatically provision SSL/TLS certificates for you.
+localhost:80 {
+    # Route all incoming requests to the 'api' container on its exposed Granian port (8000)
+    reverse_proxy api:8000
+}
