@@ -25,6 +25,11 @@ repos:
     rev: v1.20.0
     hooks:
       - id: mypy
-        args: [ --config-file=api/pyproject.toml ]
+        args: [ 
+          --config-file=api/pyproject.toml,
+          --explicit-package-bases,
+          --namespace-packages
+        ]
+        entry: env MYPYPATH=api/src PYTHONPATH=api/src mypy
         files: ^api/
-        additional_dependencies: [ fastapi, pydantic ]
+        additional_dependencies: [ fastapi, pydantic, sqlalchemy, alembic]
