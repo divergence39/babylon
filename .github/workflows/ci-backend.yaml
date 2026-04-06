@@ -1,0 +1,67 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'api/**'
+      - '.github/workflows/ci-backend.yaml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'api/**'
+      - '.github/workflows/ci-backend.yaml'
+
+defaults:
+  run:
+    working-directory: ./api
+
+jobs:
+  # Job 1
+  static-analysis:
+    name: Lint, Format & Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "api/uv.lock"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run Ruff (Lint & Format)
+        run: |
+          uv run ruff check src tests
+          uv run ruff format --check src tests
+
+      - name: Run Mypy (Type Checking)
+        run: uv run mypy src tests
+
+      - name: Run Bandit (Security Scanning)
+        run: uv run bandit -r src
+
+  # Job 2: Runs only if static-analysis passes. 
+  unit-tests:
+    name: Run Unit Tests
+    needs: static-analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "api/uv.lock"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run Pytest
+        run: uv run pytest

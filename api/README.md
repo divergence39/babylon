@@ -1,6 +1,6 @@
 # ⚙️ Babylon API
 
-The backend engine for the Babylon strictly zero-knowledge password manager. 
+The backend engine for the Babylon strictly zero-knowledge password manager.
 Built with **FastAPI** and designed around Clean Architecture principles.
 
 ## 🎯 Domain Definition
@@ -11,9 +11,9 @@ This service acts exclusively as a blind storage vault. Its sole responsibility 
 
 ## 🛠️ Tech Stack & Tooling
 - **Core Framework:** FastAPI
-- **Language:** Python 3.x
-- *Database & ORM: TBD*
-- *Dependency Management: TBD*
+- **Language:** Python 3.14.3
+- *Database & ORM*: PostgreSQL + SQLAlchemy
+- *Dependency Management*: uv
 
 ## 🚦 Local Development (Bootstrapping)
 *This section is currently under construction.*
