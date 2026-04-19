@@ -27,17 +27,45 @@ dev = [
 target-version = "py314"
 line-length = 88
 
+[tool.ruff.format]
+preview = true
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
 [tool.ruff.lint]
-# E, F, W: Base and Warning Errors
-# I: isort (Sort the import)
-# B: flake8-bugbear (Finds code smells e logic bug)
-# UP: pyupgrade (Modern Python syntac)
-select = ["E", "F", "W", "I", "B", "UP", "ASYNC"]
-ignore = []
+select = [
+    "E", "F", "W",  # Base and Warning Errors
+    "I",            # isort (Sort the import)
+    "B",            # flake8-bugbear (Finds code smells e logic bug)
+    "UP",           # pyupgrade (Modern Python syntax)
+    "ASYNC",        # async safety
+    "S",            # Security
+    "BLE",          # no blind exception
+    "N",            # pep8-naming
+    "C4", "SIM",    # flake8-comprehension, flake8-simplify
+    "T20",          # flake8-print (Disallow print statements)
+    "FAST",         # FastAPI-specific rules
+    "RUF",          # Ruff-specific rules
+    "ERA",          # eradicate (no commented-out code)
+    "RET",          # flake8-return
+    "PT",           # flake8-pytest-style
+    "ARG",          # flake8-unused-arguments
+    "D",            # pydocstyle (Docstring enforcement)
+    "C90",          # mccabe (Complexity limits)
+    "TRY",          # tryceratops (Exception handling anti-patterns)
+]
+ignore = ["D105", "D107"]   # Avoid docstring in __init__ and __post_init__ methods
 
 fixable = ["ALL"]
+unfixable = ["B"]
 
-unfixable = ["B", "UP"]
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "D"]
 
 [tool.mypy]
 python_version = "3.14"
@@ -45,9 +73,6 @@ mypy_path = "src"
 strict = true
 explicit_package_bases = true
 namespace_packages = true
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
 
 plugins = [
     "pydantic.mypy"
@@ -57,3 +82,11 @@ plugins = [
 init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
+
+[[tool.mypy.overrides]]
+module = ["pytest"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_decorators = false

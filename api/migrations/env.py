@@ -1,13 +1,22 @@
+"""Alembic environment configuration for online and offline migrations."""
+
 import asyncio
 import os
 from logging.config import fileConfig
 
+from alembic import context
+from babylon.infrastructure.database.models import Base
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio.engine import async_engine_from_config
-from babylon.infrastructure.database.models import Base
 
-from alembic import context
+
+class MissingDatabaseUrlError(ValueError):
+    """Raised when DATABASE_URL is not configured in the environment."""
+
+    def __init__(self) -> None:
+        super().__init__("DATABASE_URL environment variable is missing.")
+
 
 config = context.config
 
@@ -17,7 +26,7 @@ if config.config_file_name is not None:
 # Get dinamically the url from the environment
 db_url = os.environ.get("DATABASE_URL")
 if not db_url:
-    raise ValueError("DATABASE_URL environment variable is missing!")
+    raise MissingDatabaseUrlError
 
 # Inject it into the Alembic config
 config.set_main_option("sqlalchemy.url", db_url)
@@ -51,6 +60,7 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
+    """Run migrations using a live SQLAlchemy connection."""
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
@@ -58,11 +68,10 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """In this scenario we need to create an Engine
-    and associate a connection with the context.
+    """Create the async engine and run migrations with a bound connection.
 
+    Alembic uses this path during online migrations.
     """
-
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -77,7 +86,6 @@ async def run_async_migrations() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-
     asyncio.run(run_async_migrations())
 
 
