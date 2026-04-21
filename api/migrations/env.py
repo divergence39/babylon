@@ -23,30 +23,20 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Get dinamically the url from the environment
+# Read DATABASE_URL dynamically from the environment.
 db_url = os.environ.get("DATABASE_URL")
 if not db_url:
     raise MissingDatabaseUrlError
 
-# Inject it into the Alembic config
+# Inject the runtime URL into Alembic configuration.
 config.set_main_option("sqlalchemy.url", db_url)
 
-# Load the aggregator metadata
+# Load aggregate metadata for autogeneration.
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
-
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
-    """
+    """Run migrations in offline mode using URL-only configuration."""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -68,10 +58,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """Create the async engine and run migrations with a bound connection.
-
-    Alembic uses this path during online migrations.
-    """
+    """Create an async engine and execute migrations with a live connection."""
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
