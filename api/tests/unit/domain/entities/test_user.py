@@ -18,7 +18,7 @@ class TestUserEntity:
 
     @pytest.fixture
     def valid_username(self) -> Username:
-        return Username("spike.spiegel@example.com")
+        return Username("spike.spiegel")
 
     @pytest.fixture
     def valid_salt(self) -> MasterPasswordSalt:
@@ -78,7 +78,7 @@ class TestUserEntity:
 
         user_2 = User(
             id=base_id,  # SAME ID
-            username=Username("faye.valentine@example.com"),  # DIFFERENT USERNAME
+            username=Username("faye.valentine"),  # DIFFERENT USERNAME
             salt=valid_salt,
             server_authentication_hash=valid_hash,
             kdf_configuration=valid_kdf,
@@ -141,3 +141,58 @@ class TestUserEntity:
         assert user.salt == new_salt
         assert user.server_authentication_hash == new_hash
         assert user.kdf_configuration == new_kdf
+
+    def test_cannot_create_user_with_invalid_id_type(
+        self,
+        valid_username: Username,
+        valid_salt: MasterPasswordSalt,
+        valid_hash: ServerAuthHash,
+        valid_kdf: KdfConfiguration,
+    ) -> None:
+        with pytest.raises(TypeError, match="id must be a UserId"):
+            User(
+                id="invalid_id",  # type: ignore
+                username=valid_username,
+                salt=valid_salt,
+                server_authentication_hash=valid_hash,
+                kdf_configuration=valid_kdf,
+            )
+
+    def test_cannot_create_user_with_invalid_username_type(
+        self,
+        base_id: UserId,
+        valid_salt: MasterPasswordSalt,
+        valid_hash: ServerAuthHash,
+        valid_kdf: KdfConfiguration,
+    ) -> None:
+        with pytest.raises(TypeError, match="username must be a Username"):
+            User(
+                id=base_id,
+                username="invalid_username",  # type: ignore
+                salt=valid_salt,
+                server_authentication_hash=valid_hash,
+                kdf_configuration=valid_kdf,
+            )
+
+    def test_cannot_rotate_credentials_with_invalid_types(
+        self,
+        base_id: UserId,
+        valid_username: Username,
+        valid_salt: MasterPasswordSalt,
+        valid_hash: ServerAuthHash,
+        valid_kdf: KdfConfiguration,
+    ) -> None:
+        user = User(
+            id=base_id,
+            username=valid_username,
+            salt=valid_salt,
+            server_authentication_hash=valid_hash,
+            kdf_configuration=valid_kdf,
+        )
+
+        with pytest.raises(TypeError, match="salt must be a MasterPasswordSalt"):
+            user.rotate_credentials(
+                new_salt="invalid_salt",  # type: ignore
+                new_server_auth_hash=valid_hash,
+                new_kdf_configuration=valid_kdf,
+            )

@@ -9,10 +9,10 @@ class TestUsername:
     @pytest.mark.parametrize(
         "valid_user",
         [
-            "spike@spiegel.com",
-            "gintoki.sakata24@yorozuya.jp",
-            "mark_knopfler@direstraits.net",
-            "very-long_username-is_valid.32@email.com",
+            "spike_spiegel",
+            "gintoki.sakata24",
+            "mark-knopfler",
+            "val1d.user_n4me-32",
         ],
     )
     def test_create_valid_username(self, valid_user: str) -> None:
@@ -25,9 +25,10 @@ class TestUsername:
         [
             "",  # empty
             None,
-            "a@b.c",  # Too Short
+            "ab",  # Too Short (length 2)
             "invalid@name!",  # Invalid characters
             "alice in wonderlan",  # No whitespaces
+            "a" * 33,  # Too Long (length 33)
         ],
     )
     def test_cannot_create_invalid_username(self, invalid_name: str | None) -> None:
@@ -35,13 +36,13 @@ class TestUsername:
             Username(cast(str, invalid_name))
 
     def test_usernames_are_equatable_and_case_insensitive(self) -> None:
-        user1 = Username("Spike@Spiegel.com")
-        user2 = Username("spike@spiegel.com")
+        user1 = Username("Spike_Spiegel")
+        user2 = Username("spike_spiegel")
 
         assert user1 == user2
 
     def test_usernames_must_be_immutable(self) -> None:
-        user = Username("Spike@Spiegel.com")
+        user = Username("Spike_Spiegel")
 
         with pytest.raises((AttributeError, UsernameValidationError)):
-            user.value = "gintoki-sakata"
+            user.value = "gintoki_sakata"

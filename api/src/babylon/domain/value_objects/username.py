@@ -6,9 +6,9 @@ from typing import Final
 
 from babylon.domain.exceptions import UsernameValidationError
 
-_MIN_USERNAME_LEN: Final[int] = 8
-_MAX_USERNAME_LEN: Final[int] = 254
-_USERNAME_PATTERN = re.compile(r"^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$")
+_MIN_USERNAME_LEN: Final[int] = 3
+_MAX_USERNAME_LEN: Final[int] = 32
+_USERNAME_PATTERN = re.compile(r"^[a-z0-9._-]+$")
 
 
 @dataclass(frozen=True)
@@ -32,7 +32,8 @@ class Username:
             or len(normalized) > _MAX_USERNAME_LEN
         ):
             raise UsernameValidationError(
-                reason=f"must be a valid email address "
+                reason=f"must be a valid username containing only "
+                f"alphanumeric characters, dots, underscores, or hyphens "
                 f"between {_MIN_USERNAME_LEN} and {_MAX_USERNAME_LEN} characters.",
             )
 
