@@ -1,6 +1,7 @@
 import uuid
 
 import pytest
+
 from babylon.domain.entities import User
 from babylon.domain.value_objects import (
     KdfConfiguration,

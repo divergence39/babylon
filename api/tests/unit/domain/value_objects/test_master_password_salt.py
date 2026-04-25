@@ -1,6 +1,7 @@
 from typing import cast
 
 import pytest
+
 from babylon.domain.exceptions import MasterPasswordSaltValidationError
 from babylon.domain.value_objects import MasterPasswordSalt
 

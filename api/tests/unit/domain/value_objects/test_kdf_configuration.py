@@ -1,4 +1,5 @@
 import pytest
+
 from babylon.domain.exceptions import KdfConfigurationValidationError
 from babylon.domain.value_objects import KdfConfiguration
 

@@ -3,6 +3,7 @@
 from typing import cast
 
 import pytest
+
 from babylon.domain.exceptions import TokenValidationError
 from babylon.domain.value_objects import Token
 
