@@ -50,3 +50,10 @@ class KdfConfigurationValidationError(DomainValidationError):
 
     def __init__(self, reason: str) -> None:
         super().__init__("KdfConfiguration", reason)
+
+
+class TokenValidationError(DomainValidationError):
+    """Raised when a Token value object is given an invalid value."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__("Token", reason)
