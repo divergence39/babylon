@@ -3,7 +3,6 @@
 from .kdf_configuration import KdfConfiguration
 from .master_password_salt import MasterPasswordSalt
 from .server_auth_hash import ServerAuthHash
-from .token import Token
 from .user_id import UserId
 from .username import Username
 
@@ -11,7 +10,6 @@ __all__ = [
     "KdfConfiguration",
     "MasterPasswordSalt",
     "ServerAuthHash",
-    "Token",
     "UserId",
     "Username",
 ]
