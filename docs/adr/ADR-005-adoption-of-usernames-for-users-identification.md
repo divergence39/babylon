@@ -1,4 +1,4 @@
-# ADR-005: User Identification - Nickname and Salt Management
+# ADR-005: User Identification - Username and Salt Management
 
 ## Status
 Accepted
@@ -13,7 +13,7 @@ In traditional platforms, an email address is the standard user identifier but, 
 3. **User-Chosen Nicknames**: Provides a recognizable, user-friendly identifier without requiring PII or external third-party integrations.
 
 ## Decision
-Babylon will adopt User-Chosen Nicknames as the primary authentication identifier.
+Babylon will adopt User-Chosen Nicknames as the primary authentication identifier. Each user's Username will be just a nickname chosen by the users themselves.
 - This approach entirely avoids the infrastructure overhead of email delivery and verification, keeping the project strictly scoped to its cryptographic and architectural goals.
 - It inherently guarantees maximum privacy, as no verifiable real-world identity is required.
 
