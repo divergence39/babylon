@@ -3,6 +3,7 @@ import uuid
 import pytest
 
 from babylon.domain.entities import User
+from babylon.domain.exceptions import UserValidationError
 from babylon.domain.value_objects import (
     KdfConfiguration,
     MasterPasswordSalt,
@@ -150,7 +151,7 @@ class TestUserEntity:
         valid_hash: ServerAuthHash,
         valid_kdf: KdfConfiguration,
     ) -> None:
-        with pytest.raises(TypeError, match="id must be a UserId"):
+        with pytest.raises(UserValidationError, match="id must be a UserId"):
             User(
                 id="invalid_id",  # type: ignore
                 username=valid_username,
@@ -166,7 +167,7 @@ class TestUserEntity:
         valid_hash: ServerAuthHash,
         valid_kdf: KdfConfiguration,
     ) -> None:
-        with pytest.raises(TypeError, match="username must be a Username"):
+        with pytest.raises(UserValidationError, match="username must be a Username"):
             User(
                 id=base_id,
                 username="invalid_username",  # type: ignore
@@ -191,7 +192,9 @@ class TestUserEntity:
             kdf_configuration=valid_kdf,
         )
 
-        with pytest.raises(TypeError, match="salt must be a MasterPasswordSalt"):
+        with pytest.raises(
+            UserValidationError, match="salt must be a MasterPasswordSalt"
+        ):
             user.rotate_credentials(
                 new_salt="invalid_salt",  # type: ignore
                 new_server_auth_hash=valid_hash,

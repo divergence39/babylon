@@ -11,7 +11,7 @@ class TestMasterPasswordSalt:
         "valid_salt",
         [
             "a" * 32,  # Assuming 32-byte hex or base64 representation
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345/+" + "==",
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
             "b" * 64,
         ],
     )

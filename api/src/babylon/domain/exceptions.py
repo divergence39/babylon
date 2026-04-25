@@ -17,6 +17,13 @@ class DomainValidationError(DomainError):
         super().__init__(self.message)
 
 
+class UserValidationError(DomainValidationError):
+    """Raised when a User entity is given an invalid value."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__("User", reason)
+
+
 class UserIdValidationError(DomainValidationError):
     """Raised when a UserId value object is given an invalid value."""
 

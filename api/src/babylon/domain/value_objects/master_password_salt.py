@@ -29,7 +29,7 @@ class MasterPasswordSalt:
                 reason=f"must have at least {_MIN_SALT_LENGTH} characters.",
             )
 
-        if not _BASE64_PATTERN.fullmatch(self.value):
+        if not _BASE64_PATTERN.fullmatch(self.value) or len(self.value) % 4 != 0:
             raise MasterPasswordSaltValidationError(
-                reason="must be a valid Base64 encoded string.",
+                reason="must be a valid Base64 encoded string with proper padding.",
             )

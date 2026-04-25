@@ -1,8 +1,8 @@
 """User aggregate root entity for account-level domain operations."""
 
-from dataclasses import dataclass
 from typing import Any, Final
 
+from babylon.domain.exceptions import UserValidationError
 from babylon.domain.value_objects import (
     KdfConfiguration,
     MasterPasswordSalt,
@@ -20,7 +20,6 @@ _KDF_CONFIGURATION_TYPE_ERROR: Final[str] = (
 )
 
 
-@dataclass(eq=False)
 class User:
     """Registered user aggregate identified by immutable entity identity.
 
@@ -32,23 +31,55 @@ class User:
         kdf_configuration (KdfConfiguration): The active Argon2id configuration.
     """
 
-    id: UserId
-    username: Username
-    salt: MasterPasswordSalt
-    server_authentication_hash: ServerAuthHash
-    kdf_configuration: KdfConfiguration
+    def __init__(
+        self,
+        id: UserId,
+        username: Username,
+        salt: MasterPasswordSalt,
+        server_authentication_hash: ServerAuthHash,
+        kdf_configuration: KdfConfiguration,
+    ) -> None:
+        if not isinstance(id, UserId):
+            raise UserValidationError(_ID_TYPE_ERROR)
+        if not isinstance(username, Username):
+            raise UserValidationError(_USERNAME_TYPE_ERROR)
+        if not isinstance(salt, MasterPasswordSalt):
+            raise UserValidationError(_SALT_TYPE_ERROR)
+        if not isinstance(server_authentication_hash, ServerAuthHash):
+            raise UserValidationError(_AUTH_HASH_TYPE_ERROR)
+        if not isinstance(kdf_configuration, KdfConfiguration):
+            raise UserValidationError(_KDF_CONFIGURATION_TYPE_ERROR)
 
-    def __post_init__(self) -> None:
-        if not isinstance(self.id, UserId):
-            raise TypeError(_ID_TYPE_ERROR)
-        if not isinstance(self.username, Username):
-            raise TypeError(_USERNAME_TYPE_ERROR)
-        if not isinstance(self.salt, MasterPasswordSalt):
-            raise TypeError(_SALT_TYPE_ERROR)
-        if not isinstance(self.server_authentication_hash, ServerAuthHash):
-            raise TypeError(_AUTH_HASH_TYPE_ERROR)
-        if not isinstance(self.kdf_configuration, KdfConfiguration):
-            raise TypeError(_KDF_CONFIGURATION_TYPE_ERROR)
+        self._id = id
+        self._username = username
+        self._salt = salt
+        self._server_authentication_hash = server_authentication_hash
+        self._kdf_configuration = kdf_configuration
+
+    @property
+    def id(self) -> UserId:
+        """The user's unique identity."""
+        return self._id
+
+    @property
+    def username(self) -> Username:
+        """The user's canonical username."""
+        return self._username
+
+    @property
+    def salt(self) -> MasterPasswordSalt:
+        """The persisted salt for master-password derivation."""
+        return self._salt
+
+    @property
+    def server_authentication_hash(self) -> ServerAuthHash:
+        """The persisted server auth hash."""
+        return self._server_authentication_hash
+
+    @property
+    def kdf_configuration(self) -> KdfConfiguration:
+        """The active Argon2id configuration."""
+        return self._kdf_configuration
 
     def rotate_credentials(
         self,
@@ -65,15 +96,15 @@ class User:
                 The newly selected KDF configuration.
         """
         if not isinstance(new_salt, MasterPasswordSalt):
-            raise TypeError(_SALT_TYPE_ERROR)
+            raise UserValidationError(_SALT_TYPE_ERROR)
         if not isinstance(new_server_auth_hash, ServerAuthHash):
-            raise TypeError(_AUTH_HASH_TYPE_ERROR)
+            raise UserValidationError(_AUTH_HASH_TYPE_ERROR)
         if not isinstance(new_kdf_configuration, KdfConfiguration):
-            raise TypeError(_KDF_CONFIGURATION_TYPE_ERROR)
+            raise UserValidationError(_KDF_CONFIGURATION_TYPE_ERROR)
 
-        self.salt = new_salt
-        self.server_authentication_hash = new_server_auth_hash
-        self.kdf_configuration = new_kdf_configuration
+        self._salt = new_salt
+        self._server_authentication_hash = new_server_auth_hash
+        self._kdf_configuration = new_kdf_configuration
 
     def __eq__(self, other: Any) -> bool:
         """Compare users by entity identity only.

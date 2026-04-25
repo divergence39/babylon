@@ -30,11 +30,13 @@ class Username:
             not _USERNAME_PATTERN.fullmatch(normalized)
             or len(normalized) < _MIN_USERNAME_LEN
             or len(normalized) > _MAX_USERNAME_LEN
+            or not any(c.isalnum() for c in normalized)
         ):
             raise UsernameValidationError(
                 reason=f"must be a valid username containing only "
                 f"alphanumeric characters, dots, underscores, or hyphens "
-                f"between {_MIN_USERNAME_LEN} and {_MAX_USERNAME_LEN} characters.",
+                f"between {_MIN_USERNAME_LEN} and {_MAX_USERNAME_LEN} characters, "
+                f"with at least one alphanumeric character.",
             )
 
         object.__setattr__(self, "value", normalized)
