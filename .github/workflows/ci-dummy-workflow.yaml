@@ -1,0 +1,31 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - 'api/**'
+      - '.github/workflows/ci-backend.yaml'
+  pull_request:
+    branches: [ "main" ]
+    paths-ignore:
+      - 'api/**'
+      - '.github/workflows/ci-backend.yaml'
+
+jobs:
+  # Job 1
+  static-analysis:
+    name: Lint, Format & Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skips tests for non-backend changes
+        run: echo "No backend changes detected. Skipping tests."
+
+  # Job 2: Runs only if static-analysis passes. 
+  unit-tests:
+    name: Run Unit Tests
+    needs: static-analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skips tests for non-backend changes
+        run: echo "No backend changes detected. Skipping tests."
