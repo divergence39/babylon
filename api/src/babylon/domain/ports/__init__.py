@@ -1,1 +1,7 @@
-"""Interfaces for dependency-inverted domain and application services."""
+"""Domain port definitions."""
+
+from .user_repository import UserRepository
+
+__all__ = [
+    "UserRepository",
+]
