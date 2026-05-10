@@ -10,7 +10,7 @@ class UserRepository(ABC):
     """Mapping between the domain User aggregate root and persistent storage."""
 
     @abstractmethod
-    def save(self, user: User) -> None:
+    async def save(self, user: User) -> None:
         """Persist a new or modified user entity.
 
         Args:
@@ -19,7 +19,7 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    def find_by_id(self, id: UserId) -> User | None:
+    async def find_by_id(self, id: UserId) -> User | None:
         """Find a single user by their unique identity.
 
         Args:
@@ -31,7 +31,7 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    def find_by_username(self, username: Username) -> User | None:
+    async def find_by_username(self, username: Username) -> User | None:
         """Find a single user by their canonical username.
 
         Args:
