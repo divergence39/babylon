@@ -76,10 +76,13 @@ known-first-party = ["babylon", "tests"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 
 [tool.mypy]
 python_version = "3.14"
-mypy_path = ["src", "."]
+mypy_path = ["api/src", "api", "src", "."]
 strict = true
 explicit_package_bases = true
 namespace_packages = true
@@ -98,7 +101,7 @@ module = ["pytest"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["polyfactory.*", "testcontainers.*"]
+module = "testcontainers.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

@@ -7,6 +7,14 @@ class DomainError(Exception):
     pass
 
 
+class UserAlreadyExistsError(DomainError):
+    """Raised when trying to save a user that already exists."""
+
+    def __init__(self, username: str) -> None:
+        self.username = username
+        super().__init__(f"User with username '{username}' already exists.")
+
+
 class DomainValidationError(DomainError):
     """Raised when a value object violates a business rule."""
 
