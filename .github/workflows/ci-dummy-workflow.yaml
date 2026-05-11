@@ -29,3 +29,11 @@ jobs:
     steps:
       - name: Skips tests for non-backend changes
         run: echo "No backend changes detected. Skipping tests."
+  
+  integration-tests:
+    name: Run Integration Tests
+    needs: static-analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skips tests for non-backend changes
+        run: echo "No backend changes detected. Skipping tests."
