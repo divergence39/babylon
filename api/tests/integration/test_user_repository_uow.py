@@ -13,7 +13,8 @@ from babylon.domain.value_objects import (
     ServerAuthHash,
 )
 from babylon.infrastructure.database.uow import SqlAlchemyUnitOfWork
-from tests.integration.factories import UserFactory
+
+from .factories import UserFactory
 
 
 @pytest.fixture

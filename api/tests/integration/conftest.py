@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from tests.integration.factories import UserFactory
+from .factories import UserFactory
 
 _TEST_DB_USER = os.getenv("TEST_DB_USER", "zk_admin")
 _TEST_DB_PASSWORD = os.getenv("TEST_DB_PASSWORD", "local_development_password")

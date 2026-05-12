@@ -31,21 +31,15 @@ class SqlAlchemyUserRepository(UserRepository):
     async def save(self, user: User) -> None:
         """Persist a new or modified user entity."""
         try:
-            existing = await self._session.get(UserModel, user.id.value)
-            if existing is None:
-                model = UserModel(
-                    id=user.id.value,
-                    username=user.username.value,
-                    salt=user.salt.value.encode("utf-8"),
-                    server_auth_hash=user.server_authentication_hash.value.encode(
-                        "utf-8"
-                    ),
-                    kdf_configuration=_serialize_kdf(user.kdf_configuration),
-                )
-                self._session.add(model)
-            else:
-                _apply_user_to_model(user, existing)
+            model = UserModel(
+                id=user.id.value,
+                username=user.username.value,
+                salt=user.salt.value.encode("utf-8"),
+                server_auth_hash=user.server_authentication_hash.value.encode("utf-8"),
+                kdf_configuration=_serialize_kdf(user.kdf_configuration),
+            )
 
+            await self._session.merge(model)
             await self._session.flush()
         except IntegrityError as exc:
             if _is_unique_violation(exc):
@@ -75,14 +69,6 @@ class SqlAlchemyUserRepository(UserRepository):
         if model is None:
             return None
         return _model_to_domain(model)
-
-
-def _apply_user_to_model(user: User, model: UserModel) -> None:
-    """Apply domain User state to an existing ORM model instance."""
-    model.username = user.username.value
-    model.salt = user.salt.value.encode("utf-8")
-    model.server_auth_hash = user.server_authentication_hash.value.encode("utf-8")
-    model.kdf_configuration = _serialize_kdf(user.kdf_configuration)
 
 
 def _model_to_domain(model: UserModel) -> User:
@@ -120,7 +106,11 @@ def _deserialize_kdf(config: dict[str, int | str]) -> KdfConfiguration:
 
 def _is_unique_violation(error: IntegrityError) -> bool:
     """Return True when the database raises a unique-constraint violation."""
-    sqlstate = getattr(error.orig, "sqlstate", None)
-    if sqlstate is None:
-        sqlstate = getattr(error.orig, "pgcode", None)
+    if error.orig is None:
+        return False
+
+    sqlstate = getattr(error.orig, "sqlstate", None) or getattr(
+        error.orig, "pgcode", None
+    )
+
     return sqlstate == _UNIQUE_VIOLATION_CODE
