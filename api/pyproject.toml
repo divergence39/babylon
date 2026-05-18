@@ -73,6 +73,13 @@ convention = "google"
 [tool.ruff.lint.isort]
 known-first-party = ["babylon", "tests"]
 
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = [
+    "classmethod",
+    "sqlalchemy.orm.declared_attr",
+    "sqlalchemy.orm.declared_attr.directive",
+]
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]

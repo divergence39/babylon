@@ -10,6 +10,7 @@ from polyfactory.field_meta import FieldMeta
 
 from babylon.domain.entities import User
 from babylon.domain.value_objects import (
+    AggregateVersion,
     KdfConfiguration,
     MasterPasswordSalt,
     ServerAuthHash,
@@ -18,6 +19,7 @@ from babylon.domain.value_objects import (
 )
 
 _DEFAULT_USER_ID = UUID("018e6c4e-5e13-7fa3-aecd-8c4cc87ed165")
+_DEFAULT_VERSION = AggregateVersion(1)
 _DEFAULT_USERNAME = "alice.smith"
 _DEFAULT_SALT = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 _DEFAULT_SERVER_AUTH_HASH = "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQ"
@@ -59,12 +61,19 @@ class KdfConfigurationFactory(DataclassFactory[KdfConfiguration]):
     parallelism = _DEFAULT_KDF_CONFIGURATION.parallelism
 
 
+class AggregateVersionFactory(DataclassFactory[AggregateVersion]):
+    """Build valid AggregateVersion value objects for tests."""
+
+    value = _DEFAULT_VERSION.value
+
+
 class UserFactory(BaseFactory[User]):
     """Build User aggregate roots for integration tests."""
 
     __model__ = User
 
     id = UserIdFactory
+    version = AggregateVersionFactory
     username = UsernameFactory
     salt = MasterPasswordSaltFactory
     server_authentication_hash = ServerAuthHashFactory
@@ -80,6 +89,7 @@ class UserFactory(BaseFactory[User]):
         """Describe the User fields used by the factory."""
         return [
             FieldMeta.from_type(annotation=UserId, name="id"),
+            FieldMeta.from_type(annotation=AggregateVersion, name="version"),
             FieldMeta.from_type(annotation=Username, name="username"),
             FieldMeta.from_type(annotation=MasterPasswordSalt, name="salt"),
             FieldMeta.from_type(
@@ -93,15 +103,22 @@ class UserFactory(BaseFactory[User]):
         cls,
         *,
         user_id: str | UUID | UserId | None = None,
+        version: int | AggregateVersion | None = None,
         username: str | Username | None = None,
         **kwargs: Any,
     ) -> User:
-        """Build a User aggregate, accepting raw ID and username overrides."""
+        """Build a User aggregate, accepting raw ID, version, and username overrides."""
         if user_id is not None:
             kwargs["id"] = (
                 user_id
                 if isinstance(user_id, UserId)
                 else UserIdFactory.build(value=_normalize_uuid(user_id))
+            )
+        if version is not None:
+            kwargs["version"] = (
+                version
+                if isinstance(version, AggregateVersion)
+                else AggregateVersionFactory.build(value=version)
             )
         if username is not None:
             kwargs["username"] = (

@@ -5,9 +5,10 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 
-from babylon.domain.exceptions import UserAlreadyExistsError
+from babylon.domain.exceptions import UserAlreadyExistsError, UserConcurrencyError
 from babylon.domain.ports import UnitOfWork
 from babylon.domain.value_objects import (
+    AggregateVersion,
     KdfConfiguration,
     MasterPasswordSalt,
     ServerAuthHash,
@@ -47,6 +48,7 @@ async def test_save_and_find_user_returns_pure_domain_entity(
     assert retrieved_user.salt == user.salt
     assert retrieved_user.server_authentication_hash == user.server_authentication_hash
     assert retrieved_user.kdf_configuration == user.kdf_configuration
+    assert retrieved_user.version == user.version
 
 
 @pytest.mark.asyncio
@@ -133,6 +135,7 @@ async def test_find_by_username_returns_pure_domain_entity(
 
     assert retrieved_user is not None
     assert retrieved_user.id == user.id
+    assert retrieved_user.version == user.version
 
 
 @pytest.mark.asyncio
@@ -203,6 +206,7 @@ async def test_save_updates_existing_user(
 ) -> None:
     """Asserts that calling save on an already persisted user updates their record."""
     user = user_factory.build()
+    original_version = user.version
 
     async with uow:
         await uow.users.save(user)
@@ -223,6 +227,8 @@ async def test_save_updates_existing_user(
         new_kdf_configuration=new_kdf,
     )
 
+    assert user.version == original_version.next_version()
+
     async with uow:
         await uow.users.save(user)
         await uow.commit()
@@ -234,3 +240,77 @@ async def test_save_updates_existing_user(
     assert updated_user.salt == new_salt
     assert updated_user.server_authentication_hash == new_auth_hash
     assert updated_user.kdf_configuration == new_kdf
+    assert updated_user.version == user.version
+
+
+@pytest.mark.asyncio
+@pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
+async def test_concurrent_updates_raise_conflict(
+    uow: UnitOfWork,
+    user_factory: type[UserFactory],
+    db_session: AsyncSession,
+) -> None:
+    """Asserts concurrent updates surface as a UserConcurrencyError."""
+    user = user_factory.build()
+
+    async with uow:
+        await uow.users.save(user)
+        await uow.commit()
+
+    engine = db_session.bind
+    async_session = async_sessionmaker(
+        bind=engine,
+        expire_on_commit=False,
+    )
+    async with async_session() as session_a, async_session() as session_b:
+        uow_a = SqlAlchemyUnitOfWork(
+            session_factory=lambda: session_a,
+            owns_session=False,
+        )
+        uow_b = SqlAlchemyUnitOfWork(
+            session_factory=lambda: session_b,
+            owns_session=False,
+        )
+
+        async with uow_a:
+            user_a = await uow_a.users.find_by_id(user.id)
+
+        async with uow_b:
+            user_b = await uow_b.users.find_by_id(user.id)
+
+        assert user_a is not None
+        assert user_b is not None
+        assert user_a.version == AggregateVersion(1)
+        assert user_b.version == AggregateVersion(1)
+
+        user_a.rotate_credentials(
+            new_salt=MasterPasswordSalt(value="C" * 32),
+            new_server_auth_hash=ServerAuthHash(
+                value="$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQA2"
+            ),
+            new_kdf_configuration=KdfConfiguration(
+                algorithm="argon2id", memory_kb=65536, iterations=3, parallelism=4
+            ),
+        )
+
+        async with uow_a:
+            await uow_a.users.save(user_a)
+            await uow_a.commit()
+
+        user_b.rotate_credentials(
+            new_salt=MasterPasswordSalt(value="D" * 32),
+            new_server_auth_hash=ServerAuthHash(
+                value="$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQA3"
+            ),
+            new_kdf_configuration=KdfConfiguration(
+                algorithm="argon2id", memory_kb=65536, iterations=3, parallelism=4
+            ),
+        )
+
+        async def _commit_conflicting_update() -> None:
+            async with uow_b:
+                await uow_b.users.save(user_b)
+                await uow_b.commit()
+
+        with pytest.raises(UserConcurrencyError):
+            await _commit_conflicting_update()

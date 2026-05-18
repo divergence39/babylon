@@ -21,8 +21,15 @@ def upgrade() -> None:
         sa.Column("salt", sa.LargeBinary(), nullable=False),
         sa.Column("server_auth_hash", sa.LargeBinary(), nullable=False),
         sa.Column("kdf_configuration", postgresql.JSONB(), nullable=False),
+        sa.Column(
+            "version",
+            sa.Integer(),
+            nullable=False,
+            server_default=sa.text("1"),
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_users"),
         sa.UniqueConstraint("username", name="uq_users_username"),
+        sa.CheckConstraint("version > 0", name="ck_users_version_positive"),
     )
 
 

@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import JSON, LargeBinary, String, UniqueConstraint, Uuid
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    Integer,
+    LargeBinary,
+    String,
+    UniqueConstraint,
+    Uuid,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 from babylon.infrastructure.database.base import Base
 
@@ -15,7 +25,10 @@ class UserModel(Base):
     """ORM mapping for the users table."""
 
     __tablename__ = "users"
-    __table_args__ = (UniqueConstraint("username", name="uq_users_username"),)
+    __table_args__ = (
+        UniqueConstraint("username", name="uq_users_username"),
+        CheckConstraint("version > 0", name="ck_users_version_positive"),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
     username: Mapped[str] = mapped_column(String(length=32), nullable=False)
@@ -25,3 +38,15 @@ class UserModel(Base):
         JSON().with_variant(JSONB(), "postgresql"),
         nullable=False,
     )
+    version: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("1"),
+    )
+
+    @declared_attr.directive
+    def __mapper_args__(cls) -> dict[str, Any]:
+        return {
+            "version_id_col": cls.version,
+            "version_id_generator": False,
+        }

@@ -65,3 +65,18 @@ class KdfConfigurationValidationError(DomainValidationError):
 
     def __init__(self, reason: str) -> None:
         super().__init__("KdfConfiguration", reason)
+
+
+class AggregateVersionValidationError(DomainValidationError):
+    """Raised when an AggregateVersion value object is given an invalid value."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__("AggregateVersion", reason)
+
+
+class UserConcurrencyError(DomainError):
+    """Raised when a user update conflicts with a concurrent write."""
+
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
+        super().__init__(f"User '{user_id}' was updated concurrently.")

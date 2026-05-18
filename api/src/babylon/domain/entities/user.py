@@ -4,6 +4,7 @@ from typing import Any, Final
 
 from babylon.domain.exceptions import UserValidationError
 from babylon.domain.value_objects import (
+    AggregateVersion,
     KdfConfiguration,
     MasterPasswordSalt,
     ServerAuthHash,
@@ -12,6 +13,7 @@ from babylon.domain.value_objects import (
 )
 
 _ID_TYPE_ERROR: Final[str] = "id must be a UserId"
+_VERSION_TYPE_ERROR: Final[str] = "version must be an AggregateVersion"
 _USERNAME_TYPE_ERROR: Final[str] = "username must be a Username"
 _SALT_TYPE_ERROR: Final[str] = "salt must be a MasterPasswordSalt"
 _AUTH_HASH_TYPE_ERROR: Final[str] = "the authentication hash must be a ServerAuthHash"
@@ -25,6 +27,7 @@ class User:
 
     Attributes:
         id (UserId): The user's unique identity.
+        version (AggregateVersion): The optimistic concurrency version.
         username (Username): The user's canonical username.
         salt (MasterPasswordSalt): The persisted salt for master-password derivation.
         server_authentication_hash (ServerAuthHash): The persisted server auth hash.
@@ -34,6 +37,7 @@ class User:
     def __init__(
         self,
         id: UserId,
+        version: AggregateVersion,
         username: Username,
         salt: MasterPasswordSalt,
         server_authentication_hash: ServerAuthHash,
@@ -41,6 +45,8 @@ class User:
     ) -> None:
         if not isinstance(id, UserId):
             raise UserValidationError(_ID_TYPE_ERROR)
+        if not isinstance(version, AggregateVersion):
+            raise UserValidationError(_VERSION_TYPE_ERROR)
         if not isinstance(username, Username):
             raise UserValidationError(_USERNAME_TYPE_ERROR)
         if not isinstance(salt, MasterPasswordSalt):
@@ -51,6 +57,7 @@ class User:
             raise UserValidationError(_KDF_CONFIGURATION_TYPE_ERROR)
 
         self._id = id
+        self._version = version
         self._username = username
         self._salt = salt
         self._server_authentication_hash = server_authentication_hash
@@ -60,6 +67,11 @@ class User:
     def id(self) -> UserId:
         """The user's unique identity."""
         return self._id
+
+    @property
+    def version(self) -> AggregateVersion:
+        """The optimistic concurrency version."""
+        return self._version
 
     @property
     def username(self) -> Username:
@@ -89,6 +101,8 @@ class User:
     ) -> None:
         """Rotate all credential-related attributes in a single state transition.
 
+        This operation increments the aggregate version.
+
         Args:
             new_salt (MasterPasswordSalt): The newly derived master password salt.
             new_server_auth_hash (ServerAuthHash): The newly computed Argon2id PHC hash.
@@ -105,6 +119,10 @@ class User:
         self._salt = new_salt
         self._server_authentication_hash = new_server_auth_hash
         self._kdf_configuration = new_kdf_configuration
+        self._bump_version()
+
+    def _bump_version(self) -> None:
+        self._version = self._version.next_version()
 
     def __eq__(self, other: Any) -> bool:
         """Compare users by entity identity only.
