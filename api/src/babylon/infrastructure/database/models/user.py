@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
     JSON,
     CheckConstraint,
+    DateTime,
+    FetchedValue,
     Integer,
     LargeBinary,
     String,
@@ -37,6 +40,12 @@ class UserModel(Base):
     kdf_configuration: Mapped[dict[str, int | str]] = mapped_column(
         JSON().with_variant(JSONB(), "postgresql"),
         nullable=False,
+    )
+    last_modification_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("clock_timestamp()"),
+        server_onupdate=FetchedValue(),
     )
     version: Mapped[int] = mapped_column(
         Integer,

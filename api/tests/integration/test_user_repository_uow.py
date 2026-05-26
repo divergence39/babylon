@@ -1,4 +1,7 @@
+import asyncio
+
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -13,6 +16,7 @@ from babylon.domain.value_objects import (
     MasterPasswordSalt,
     ServerAuthHash,
 )
+from babylon.infrastructure.database.models import UserModel
 from babylon.infrastructure.database.uow import SqlAlchemyUnitOfWork
 
 from .factories import UserFactory
@@ -49,6 +53,81 @@ async def test_save_and_find_user_returns_pure_domain_entity(
     assert retrieved_user.server_authentication_hash == user.server_authentication_hash
     assert retrieved_user.kdf_configuration == user.kdf_configuration
     assert retrieved_user.version == user.version
+
+
+@pytest.mark.asyncio
+async def test_last_modification_time_set_on_insert(
+    uow: UnitOfWork,
+    user_factory: type[UserFactory],
+    db_session: AsyncSession,
+) -> None:
+    """Asserts inserts record a timezone-aware last modification timestamp."""
+    user = user_factory.build()
+
+    async with uow:
+        await uow.users.save(user)
+        await uow.commit()
+
+    result = await db_session.execute(
+        select(UserModel)
+        .where(UserModel.id == user.id.value)
+        .execution_options(populate_existing=True)
+    )
+    model = result.scalar_one()
+
+    assert model.last_modification_time is not None
+    assert model.last_modification_time.tzinfo is not None
+    assert (
+        model.last_modification_time.tzinfo.utcoffset(model.last_modification_time)
+        is not None
+    )
+
+
+@pytest.mark.asyncio
+async def test_last_modification_time_updates_on_change(
+    uow: UnitOfWork,
+    user_factory: type[UserFactory],
+    db_session: AsyncSession,
+) -> None:
+    """Asserts updates bump the last modification timestamp."""
+    user = user_factory.build()
+
+    async with uow:
+        await uow.users.save(user)
+        await uow.commit()
+
+    result = await db_session.execute(
+        select(UserModel)
+        .where(UserModel.id == user.id.value)
+        .execution_options(populate_existing=True)
+    )
+    model = result.scalar_one()
+    initial_time = model.last_modification_time
+
+    await asyncio.sleep(0.01)
+
+    user.rotate_credentials(
+        new_salt=MasterPasswordSalt(value="E" * 32),
+        new_server_auth_hash=ServerAuthHash(
+            value="$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQA4"
+        ),
+        new_kdf_configuration=KdfConfiguration(
+            algorithm="argon2id", memory_kb=65536, iterations=3, parallelism=4
+        ),
+    )
+
+    async with uow:
+        await uow.users.save(user)
+        await uow.commit()
+
+    result = await db_session.execute(
+        select(UserModel)
+        .where(UserModel.id == user.id.value)
+        .execution_options(populate_existing=True)
+    )
+    updated_model = result.scalar_one()
+
+    assert updated_model.last_modification_time > initial_time
 
 
 @pytest.mark.asyncio
