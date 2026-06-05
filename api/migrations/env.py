@@ -24,12 +24,14 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Get dinamically the url from the environment
-db_url = os.environ.get("DATABASE_URL")
+db_url = config.get_main_option("sqlalchemy.url")
+
+if not db_url:
+    db_url = os.environ.get("DATABASE_URL")
+
 if not db_url:
     raise MissingDatabaseUrlError
 
-# Inject it into the Alembic config
 config.set_main_option("sqlalchemy.url", db_url)
 
 # Load the aggregator metadata

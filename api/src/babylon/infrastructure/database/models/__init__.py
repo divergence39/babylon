@@ -1,7 +1,6 @@
 """ORM model registrations used to populate SQLAlchemy metadata."""
 
 from ..base import Base
+from .user import UserModel
 
-# Import model modules here so SQLAlchemy mappings are registered.
-
-__all__ = ["Base"]
+__all__ = ["Base", "UserModel"]

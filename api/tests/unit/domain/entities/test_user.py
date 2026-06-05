@@ -5,6 +5,7 @@ import pytest
 from babylon.domain.entities import User
 from babylon.domain.exceptions import UserValidationError
 from babylon.domain.value_objects import (
+    AggregateVersion,
     KdfConfiguration,
     MasterPasswordSalt,
     ServerAuthHash,
@@ -17,6 +18,10 @@ class TestUserEntity:
     @pytest.fixture
     def base_id(self) -> UserId:
         return UserId(uuid.uuid7())
+
+    @pytest.fixture
+    def valid_version(self) -> AggregateVersion:
+        return AggregateVersion(1)
 
     @pytest.fixture
     def valid_username(self) -> Username:
@@ -39,6 +44,7 @@ class TestUserEntity:
     def test_create_valid_user_entity(
         self,
         base_id: UserId,
+        valid_version: AggregateVersion,
         valid_username: Username,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
@@ -47,6 +53,7 @@ class TestUserEntity:
         """Ensure entity creation wires value objects correctly."""
         user = User(
             id=base_id,
+            version=valid_version,
             username=valid_username,
             salt=valid_salt,
             server_authentication_hash=valid_hash,
@@ -54,6 +61,7 @@ class TestUserEntity:
         )
 
         assert user.id == base_id
+        assert user.version == valid_version
         assert user.username == valid_username
         assert user.kdf_configuration == valid_kdf
         assert user.salt == valid_salt
@@ -62,6 +70,7 @@ class TestUserEntity:
     def test_entities_are_compared_by_identity_only(
         self,
         base_id: UserId,
+        valid_version: AggregateVersion,
         valid_username: Username,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
@@ -72,6 +81,7 @@ class TestUserEntity:
         """
         user_1 = User(
             id=base_id,
+            version=valid_version,
             username=valid_username,
             salt=valid_salt,
             server_authentication_hash=valid_hash,
@@ -80,6 +90,7 @@ class TestUserEntity:
 
         user_2 = User(
             id=base_id,  # SAME ID
+            version=valid_version,
             username=Username("faye.valentine"),  # DIFFERENT USERNAME
             salt=valid_salt,
             server_authentication_hash=valid_hash,
@@ -90,6 +101,7 @@ class TestUserEntity:
 
     def test_entities_with_different_ids_are_not_equal(
         self,
+        valid_version: AggregateVersion,
         valid_username: Username,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
@@ -97,6 +109,7 @@ class TestUserEntity:
     ) -> None:
         user_1 = User(
             id=UserId(uuid.uuid7()),
+            version=valid_version,
             username=valid_username,
             salt=valid_salt,
             server_authentication_hash=valid_hash,
@@ -105,6 +118,7 @@ class TestUserEntity:
 
         user_2 = User(
             id=UserId(uuid.uuid7()),  # DIFFERENT ID
+            version=valid_version,
             username=valid_username,  # SAME USERNAME
             salt=valid_salt,
             server_authentication_hash=valid_hash,
@@ -116,6 +130,7 @@ class TestUserEntity:
     def test_rotate_authentication_credentials(
         self,
         base_id: UserId,
+        valid_version: AggregateVersion,
         valid_username: Username,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
@@ -126,6 +141,7 @@ class TestUserEntity:
         """
         user = User(
             id=base_id,
+            version=valid_version,
             username=valid_username,
             salt=valid_salt,
             server_authentication_hash=valid_hash,
@@ -143,9 +159,11 @@ class TestUserEntity:
         assert user.salt == new_salt
         assert user.server_authentication_hash == new_hash
         assert user.kdf_configuration == new_kdf
+        assert user.version == valid_version.next_version()
 
     def test_cannot_create_user_with_invalid_id_type(
         self,
+        valid_version: AggregateVersion,
         valid_username: Username,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
@@ -154,6 +172,27 @@ class TestUserEntity:
         with pytest.raises(UserValidationError, match="id must be a UserId"):
             User(
                 id="invalid_id",  # type: ignore
+                version=valid_version,
+                username=valid_username,
+                salt=valid_salt,
+                server_authentication_hash=valid_hash,
+                kdf_configuration=valid_kdf,
+            )
+
+    def test_cannot_create_user_with_invalid_version_type(
+        self,
+        base_id: UserId,
+        valid_username: Username,
+        valid_salt: MasterPasswordSalt,
+        valid_hash: ServerAuthHash,
+        valid_kdf: KdfConfiguration,
+    ) -> None:
+        with pytest.raises(
+            UserValidationError, match="version must be an AggregateVersion"
+        ):
+            User(
+                id=base_id,
+                version="invalid_version",  # type: ignore
                 username=valid_username,
                 salt=valid_salt,
                 server_authentication_hash=valid_hash,
@@ -163,6 +202,7 @@ class TestUserEntity:
     def test_cannot_create_user_with_invalid_username_type(
         self,
         base_id: UserId,
+        valid_version: AggregateVersion,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
         valid_kdf: KdfConfiguration,
@@ -170,6 +210,7 @@ class TestUserEntity:
         with pytest.raises(UserValidationError, match="username must be a Username"):
             User(
                 id=base_id,
+                version=valid_version,
                 username="invalid_username",  # type: ignore
                 salt=valid_salt,
                 server_authentication_hash=valid_hash,
@@ -179,6 +220,7 @@ class TestUserEntity:
     def test_cannot_rotate_credentials_with_invalid_types(
         self,
         base_id: UserId,
+        valid_version: AggregateVersion,
         valid_username: Username,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
@@ -186,6 +228,7 @@ class TestUserEntity:
     ) -> None:
         user = User(
             id=base_id,
+            version=valid_version,
             username=valid_username,
             salt=valid_salt,
             server_authentication_hash=valid_hash,
