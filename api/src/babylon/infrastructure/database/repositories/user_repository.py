@@ -7,7 +7,6 @@ from sqlalchemy.exc import IntegrityError, OperationalError, TimeoutError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.exc import StaleDataError
 
-from babylon.application import DatabaseUnavailableError
 from babylon.domain.entities import User
 from babylon.domain.exceptions import UserAlreadyExistsError, UserConcurrencyError
 from babylon.domain.ports import UserRepository
@@ -19,6 +18,7 @@ from babylon.domain.value_objects import (
     UserId,
     Username,
 )
+from babylon.infrastructure.database.exceptions import DatabaseUnavailableError
 from babylon.infrastructure.database.models import UserModel
 
 _UNIQUE_VIOLATION_CODE = "23505"
