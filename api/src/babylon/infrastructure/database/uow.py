@@ -8,10 +8,10 @@ from collections.abc import Callable
 from sqlalchemy.exc import OperationalError, TimeoutError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from babylon.application import DatabaseUnavailableError
 from babylon.domain.entities import User
 from babylon.domain.ports import UnitOfWork, UserRepository
 from babylon.domain.value_objects import UserId, Username
+from babylon.infrastructure.database.exceptions import DatabaseUnavailableError
 from babylon.infrastructure.database.repositories.user_repository import (
     SqlAlchemyUserRepository,
 )
