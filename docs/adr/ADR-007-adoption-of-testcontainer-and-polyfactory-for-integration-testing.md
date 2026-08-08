@@ -1,4 +1,4 @@
-# ADR-008: Adoption of Testcontainers and Polyfactory for Integration Testing
+# ADR-007: Adoption of Testcontainers and Polyfactory for Integration Testing
 
 ## Status
 Accepted
