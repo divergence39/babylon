@@ -2,7 +2,7 @@
 
 from babylon.application.ports.salt_generator import IFakeSaltGenerator
 from babylon.domain.ports.unit_of_work import UnitOfWork
-from babylon.domain.value_objects import Username
+from babylon.domain.value_objects import UsernameHash
 
 from .dtos import GetLoginOptionsQueryDTO, GetLoginOptionsResponseDTO
 
@@ -19,8 +19,8 @@ class GetLoginOptions:
     ) -> GetLoginOptionsResponseDTO:
         """Retrieve login options for a given username."""
         async with self._uow as uow:
-            username = Username(dto.username)
-            user = await uow.users.find_by_username(username)
+            username_hash = UsernameHash(dto.username_hash)
+            user = await uow.users.find_by_username_hash(username_hash)
 
             if user:
                 return GetLoginOptionsResponseDTO(
@@ -31,7 +31,7 @@ class GetLoginOptions:
                 )
 
             # Security requirement: Prevent user enumeration
-            fake_salt = self._salt_generator.generate_fallback_salt(dto.username)
+            fake_salt = self._salt_generator.generate_fallback_salt(dto.username_hash)
             return GetLoginOptionsResponseDTO(
                 salt=fake_salt,
                 kdf_memory_cost=65536,

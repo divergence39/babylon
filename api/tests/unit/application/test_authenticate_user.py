@@ -13,12 +13,13 @@ class TestAuthenticateUser:
     async def test_authenticate_user_happy_path(
         self, uow, user_factory, valid_phc_hash
     ):
-        existing_user = user_factory("test.user")
+        existing_username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
+        existing_user = user_factory(existing_username_hash)
         await uow.users.save(existing_user)
 
         use_case = AuthenticateUser(uow)
         dto = AuthenticateUserQueryDTO(
-            username="test.user", server_auth_hash=valid_phc_hash
+            username_hash=existing_username_hash, server_auth_hash=valid_phc_hash
         )
 
         response = await use_case(dto)
@@ -30,8 +31,9 @@ class TestAuthenticateUser:
     @pytest.mark.asyncio
     async def test_authenticate_user_sad_path_not_found(self, uow, valid_phc_hash):
         use_case = AuthenticateUser(uow)
+        nonexistent_username_hash = "ziciPa56GT7tKXHt5xua255MCsQAAjsFQEQFfWcZyUU="
         dto = AuthenticateUserQueryDTO(
-            username="nonexistent.user", server_auth_hash=valid_phc_hash
+            username_hash=nonexistent_username_hash, server_auth_hash=valid_phc_hash
         )
 
         with pytest.raises(InvalidCredentialsError):
@@ -41,7 +43,8 @@ class TestAuthenticateUser:
 
     @pytest.mark.asyncio
     async def test_authenticate_user_sad_path_wrong_hash(self, uow, user_factory):
-        existing_user = user_factory("test.user")
+        test_username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
+        existing_user = user_factory(test_username_hash)
         await uow.users.save(existing_user)
 
         use_case = AuthenticateUser(uow)
@@ -50,7 +53,7 @@ class TestAuthenticateUser:
 t=3,p=4$c29tZXNhbHQ$d3Jvbmdhbndlcndyb25nYW53ZXJ3cm9uZ2Fud2Vyd3Jv"
 
         dto = AuthenticateUserQueryDTO(
-            username="test.user", server_auth_hash=new_valid_phc_hash
+            username_hash=test_username_hash, server_auth_hash=new_valid_phc_hash
         )
 
         with pytest.raises(InvalidCredentialsError):

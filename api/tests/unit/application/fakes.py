@@ -6,7 +6,7 @@ from babylon.application.ports.salt_generator import IFakeSaltGenerator
 from babylon.domain.entities import User
 from babylon.domain.ports.unit_of_work import UnitOfWork
 from babylon.domain.ports.user_repository import UserRepository
-from babylon.domain.value_objects import UserId, Username
+from babylon.domain.value_objects import UserId, UsernameHash
 
 
 class FakeUserRepository(UserRepository):
@@ -19,9 +19,9 @@ class FakeUserRepository(UserRepository):
     async def find_by_id(self, id: UserId) -> User | None:
         return self._users.get(id.value)
 
-    async def find_by_username(self, username: Username) -> User | None:
+    async def find_by_username_hash(self, username_hash: UsernameHash) -> User | None:
         for u in self._users.values():
-            if u.username == username:
+            if u.username_hash == username_hash:
                 return u
         return None
 

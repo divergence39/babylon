@@ -16,7 +16,7 @@ from babylon.domain.value_objects import (
     MasterPasswordSalt,
     ServerAuthHash,
     UserId,
-    Username,
+    UsernameHash,
 )
 from babylon.infrastructure.database.exceptions import DatabaseUnavailableError
 from babylon.infrastructure.database.models import UserModel
@@ -39,7 +39,7 @@ class SqlAlchemyUserRepository(UserRepository):
             if existing is None:
                 model = UserModel(
                     id=user.id.value,
-                    username=user.username.value,
+                    username=user.username_hash.value,
                     salt=salt_bytes,
                     server_auth_hash=auth_hash_bytes,
                     kdf_configuration=_serialize_kdf(user.kdf_configuration),
@@ -48,7 +48,7 @@ class SqlAlchemyUserRepository(UserRepository):
                 self._session.add(model)
             else:
                 _ensure_expected_version(user, existing.version)
-                existing.username = user.username.value
+                existing.username = user.username_hash.value
                 existing.salt = salt_bytes
                 existing.server_auth_hash = auth_hash_bytes
                 existing.kdf_configuration = _serialize_kdf(user.kdf_configuration)
@@ -57,7 +57,7 @@ class SqlAlchemyUserRepository(UserRepository):
             await self._session.flush()
         except IntegrityError as exc:
             if _is_unique_violation(exc):
-                raise UserAlreadyExistsError(user.username.value) from exc
+                raise UserAlreadyExistsError(user.username_hash.value) from exc
             raise
         except StaleDataError as exc:
             raise UserConcurrencyError(str(user.id.value)) from exc
@@ -74,10 +74,12 @@ class SqlAlchemyUserRepository(UserRepository):
             return None
         return _model_to_domain(model)
 
-    async def find_by_username(self, username: Username) -> User | None:
+    async def find_by_username_hash(self, username_hash: UsernameHash) -> User | None:
         """Find a single user by their canonical username."""
         try:
-            statement = select(UserModel).where(UserModel.username == username.value)
+            statement = select(UserModel).where(
+                UserModel.username == username_hash.value
+            )
             result = await self._session.execute(statement)
         except (OperationalError, TimeoutError) as exc:
             raise DatabaseUnavailableError() from exc
@@ -92,7 +94,7 @@ def _model_to_domain(model: UserModel) -> User:
     return User(
         id=UserId(value=model.id),
         version=AggregateVersion(value=model.version),
-        username=Username(value=model.username),
+        username_hash=UsernameHash(value=model.username),
         salt=MasterPasswordSalt(value=model.salt.decode("utf-8")),
         server_authentication_hash=ServerAuthHash(
             value=model.server_auth_hash.decode("utf-8"),

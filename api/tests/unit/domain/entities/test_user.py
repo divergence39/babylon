@@ -10,7 +10,7 @@ from babylon.domain.value_objects import (
     MasterPasswordSalt,
     ServerAuthHash,
     UserId,
-    Username,
+    UsernameHash,
 )
 
 
@@ -24,8 +24,8 @@ class TestUserEntity:
         return AggregateVersion(1)
 
     @pytest.fixture
-    def valid_username(self) -> Username:
-        return Username("spike.spiegel")
+    def valid_username(self) -> UsernameHash:
+        return UsernameHash("MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8=")
 
     @pytest.fixture
     def valid_salt(self) -> MasterPasswordSalt:
@@ -45,7 +45,7 @@ class TestUserEntity:
         self,
         base_id: UserId,
         valid_version: AggregateVersion,
-        valid_username: Username,
+        valid_username: UsernameHash,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
         valid_kdf: KdfConfiguration,
@@ -54,7 +54,7 @@ class TestUserEntity:
         user = User(
             id=base_id,
             version=valid_version,
-            username=valid_username,
+            username_hash=valid_username,
             salt=valid_salt,
             server_authentication_hash=valid_hash,
             kdf_configuration=valid_kdf,
@@ -62,7 +62,7 @@ class TestUserEntity:
 
         assert user.id == base_id
         assert user.version == valid_version
-        assert user.username == valid_username
+        assert user.username_hash == valid_username
         assert user.kdf_configuration == valid_kdf
         assert user.salt == valid_salt
         assert user.server_authentication_hash == valid_hash
@@ -71,18 +71,18 @@ class TestUserEntity:
         self,
         base_id: UserId,
         valid_version: AggregateVersion,
-        valid_username: Username,
+        valid_username: UsernameHash,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
         valid_kdf: KdfConfiguration,
     ) -> None:
         """DDD Rule: Two entities with the same ID are the exact same entity,
-        even if their attributes differ (e.g., the user changed their username).
+        even if their attributes differ (e.g., the user changed their username_hash).
         """
         user_1 = User(
             id=base_id,
             version=valid_version,
-            username=valid_username,
+            username_hash=valid_username,
             salt=valid_salt,
             server_authentication_hash=valid_hash,
             kdf_configuration=valid_kdf,
@@ -91,7 +91,7 @@ class TestUserEntity:
         user_2 = User(
             id=base_id,  # SAME ID
             version=valid_version,
-            username=Username("faye.valentine"),  # DIFFERENT USERNAME
+            username_hash=UsernameHash("ziciPa56GT7tKXHt5xua255MCsQAAjsFQEQFfWcZyUU="),
             salt=valid_salt,
             server_authentication_hash=valid_hash,
             kdf_configuration=valid_kdf,
@@ -102,7 +102,7 @@ class TestUserEntity:
     def test_entities_with_different_ids_are_not_equal(
         self,
         valid_version: AggregateVersion,
-        valid_username: Username,
+        valid_username: UsernameHash,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
         valid_kdf: KdfConfiguration,
@@ -110,7 +110,7 @@ class TestUserEntity:
         user_1 = User(
             id=UserId(uuid.uuid7()),
             version=valid_version,
-            username=valid_username,
+            username_hash=valid_username,
             salt=valid_salt,
             server_authentication_hash=valid_hash,
             kdf_configuration=valid_kdf,
@@ -119,7 +119,7 @@ class TestUserEntity:
         user_2 = User(
             id=UserId(uuid.uuid7()),  # DIFFERENT ID
             version=valid_version,
-            username=valid_username,  # SAME USERNAME
+            username_hash=valid_username,  # SAME username_hash
             salt=valid_salt,
             server_authentication_hash=valid_hash,
             kdf_configuration=valid_kdf,
@@ -131,7 +131,7 @@ class TestUserEntity:
         self,
         base_id: UserId,
         valid_version: AggregateVersion,
-        valid_username: Username,
+        valid_username: UsernameHash,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
         valid_kdf: KdfConfiguration,
@@ -142,7 +142,7 @@ class TestUserEntity:
         user = User(
             id=base_id,
             version=valid_version,
-            username=valid_username,
+            username_hash=valid_username,
             salt=valid_salt,
             server_authentication_hash=valid_hash,
             kdf_configuration=valid_kdf,
@@ -164,7 +164,7 @@ class TestUserEntity:
     def test_cannot_create_user_with_invalid_id_type(
         self,
         valid_version: AggregateVersion,
-        valid_username: Username,
+        valid_username: UsernameHash,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
         valid_kdf: KdfConfiguration,
@@ -173,7 +173,7 @@ class TestUserEntity:
             User(
                 id="invalid_id",  # type: ignore
                 version=valid_version,
-                username=valid_username,
+                username_hash=valid_username,
                 salt=valid_salt,
                 server_authentication_hash=valid_hash,
                 kdf_configuration=valid_kdf,
@@ -182,7 +182,7 @@ class TestUserEntity:
     def test_cannot_create_user_with_invalid_version_type(
         self,
         base_id: UserId,
-        valid_username: Username,
+        valid_username: UsernameHash,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
         valid_kdf: KdfConfiguration,
@@ -193,7 +193,7 @@ class TestUserEntity:
             User(
                 id=base_id,
                 version="invalid_version",  # type: ignore
-                username=valid_username,
+                username_hash=valid_username,
                 salt=valid_salt,
                 server_authentication_hash=valid_hash,
                 kdf_configuration=valid_kdf,
@@ -207,11 +207,13 @@ class TestUserEntity:
         valid_hash: ServerAuthHash,
         valid_kdf: KdfConfiguration,
     ) -> None:
-        with pytest.raises(UserValidationError, match="username must be a Username"):
+        with pytest.raises(
+            UserValidationError, match="username hash must be a UsernameHash"
+        ):
             User(
                 id=base_id,
                 version=valid_version,
-                username="invalid_username",  # type: ignore
+                username_hash="invalid_username",  # type: ignore
                 salt=valid_salt,
                 server_authentication_hash=valid_hash,
                 kdf_configuration=valid_kdf,
@@ -221,7 +223,7 @@ class TestUserEntity:
         self,
         base_id: UserId,
         valid_version: AggregateVersion,
-        valid_username: Username,
+        valid_username: UsernameHash,
         valid_salt: MasterPasswordSalt,
         valid_hash: ServerAuthHash,
         valid_kdf: KdfConfiguration,
@@ -229,7 +231,7 @@ class TestUserEntity:
         user = User(
             id=base_id,
             version=valid_version,
-            username=valid_username,
+            username_hash=valid_username,
             salt=valid_salt,
             server_authentication_hash=valid_hash,
             kdf_configuration=valid_kdf,

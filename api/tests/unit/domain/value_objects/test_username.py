@@ -3,23 +3,21 @@ from typing import cast
 import pytest
 
 from babylon.domain.exceptions import UsernameValidationError
-from babylon.domain.value_objects import Username
+from babylon.domain.value_objects import UsernameHash
 
 
 class TestUsername:
     @pytest.mark.parametrize(
         "valid_user",
         [
-            "spike_spiegel",
-            "gintoki.sakata24",
-            "mark-knopfler",
-            "val1d.user_n4me-32",
+            "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8=",
+            "ziciPa56GT7tKXHt5xua255MCsQAAjsFQEQFfWcZyUU=",
         ],
     )
     def test_create_valid_username(self, valid_user: str) -> None:
-        username = Username(valid_user)
+        username_hash = UsernameHash(valid_user)
 
-        assert username.value == valid_user.lower()
+        assert username_hash.value == valid_user
 
     @pytest.mark.parametrize(
         "invalid_name",
@@ -30,20 +28,21 @@ class TestUsername:
             "invalid@name!",  # Invalid characters
             "alice in wonderlan",  # No whitespaces
             "a" * 33,  # Too Long (length 33)
+            "Spike_Spiegel",  # Not hashed
         ],
     )
     def test_cannot_create_invalid_username(self, invalid_name: str | None) -> None:
         with pytest.raises(UsernameValidationError):
-            Username(cast(str, invalid_name))
+            UsernameHash(cast(str, invalid_name))
 
-    def test_usernames_are_equatable_and_case_insensitive(self) -> None:
-        user1 = Username("Spike_Spiegel")
-        user2 = Username("spike_spiegel")
+    def test_usernames_are_equatable(self) -> None:
+        user1 = UsernameHash("MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8=")
+        user2 = UsernameHash("MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8=")
 
         assert user1 == user2
 
     def test_usernames_must_be_immutable(self) -> None:
-        user = Username("Spike_Spiegel")
+        username = UsernameHash("MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8=")
 
         with pytest.raises((AttributeError, UsernameValidationError)):
-            user.value = "gintoki_sakata"
+            username.value = "ziciPa56GT7tKXHt5xua255MCsQAAjsFQEQFfWcZyUU="

@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 
 from babylon.domain.entities import User
-from babylon.domain.value_objects import UserId, Username
+from babylon.domain.value_objects import UserId, UsernameHash
 
 
 class UserRepository(ABC):
@@ -31,11 +31,11 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    async def find_by_username(self, username: Username) -> User | None:
-        """Find a single user by their canonical username.
+    async def find_by_username_hash(self, username_hash: UsernameHash) -> User | None:
+        """Find a single user by their canonical username hash..
 
         Args:
-            username (Username): The canonical username to search by.
+            username_hash (UsernameHash): The canonical username hash to search by.
 
         Returns:
             User | None: The user entity if found, None otherwise.

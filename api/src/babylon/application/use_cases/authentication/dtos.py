@@ -7,7 +7,7 @@ from dataclasses import dataclass
 class AuthenticateUserQueryDTO:
     """Input Data Transfer Object for authenticating a user."""
 
-    username: str
+    username_hash: str
     server_auth_hash: str
 
 

@@ -11,7 +11,7 @@ class UserAlreadyExistsError(DomainError):
     """Raised when trying to save a user that already exists."""
 
     def __init__(self, username: str) -> None:
-        self.username = username
+        self.username_hash = username
         super().__init__(f"User with username '{username}' already exists.")
 
 
