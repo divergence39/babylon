@@ -48,7 +48,7 @@ async def test_save_and_find_user_returns_pure_domain_entity(
 
     assert retrieved_user is not None
     assert retrieved_user.id == user.id
-    assert retrieved_user.username == user.username
+    assert retrieved_user.username_hash == user.username_hash
     assert retrieved_user.salt == user.salt
     assert retrieved_user.server_authentication_hash == user.server_authentication_hash
     assert retrieved_user.kdf_configuration == user.kdf_configuration
@@ -160,9 +160,10 @@ async def test_unique_violation_rolls_back_and_allows_retry(
     user_factory: type[UserFactory],
 ) -> None:
     """Asserts a deterministic unique-constraint failure rolls back cleanly."""
+    test_username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
     user = user_factory.build(
         user_id="018e6d2a-4f51-7000-8000-000000000010",
-        username="delta.test",
+        username_hash=test_username_hash,
     )
 
     async with uow:
@@ -171,7 +172,7 @@ async def test_unique_violation_rolls_back_and_allows_retry(
 
     duplicate = user_factory.build(
         user_id="018e6d2a-4f51-7000-8000-000000000011",
-        username=user.username.value,
+        username_hash=user.username_hash.value,
     )
 
     with pytest.raises(UserAlreadyExistsError) as exc_info:  # noqa: PT012
@@ -179,11 +180,13 @@ async def test_unique_violation_rolls_back_and_allows_retry(
             await uow.users.save(duplicate)
             await uow.commit()
 
-    assert exc_info.value.username == user.username.value
+    assert exc_info.value.username_hash == user.username_hash.value
+
+    test_username_hash_retry = "ziciPa56GT7tKXHt5xua255MCsQAAjsFQEQFfWcZyUU="
 
     retry_user = user_factory.build(
         user_id="018e6d2a-4f51-7000-8000-000000000012",
-        username="delta.retry",
+        username_hash=test_username_hash_retry,
     )
 
     async with uow:
@@ -202,15 +205,16 @@ async def test_find_by_username_returns_pure_domain_entity(
     uow: UnitOfWork,
     user_factory: type[UserFactory],
 ) -> None:
-    """Asserts retrieval by canonical username rehydrates the domain entity."""
-    user = user_factory.build(username="bob.test")
+    """Asserts retrieval by canonical username_hash rehydrates the domain entity."""
+    test_username_hash = "ziciPa56GT7tKXHt5xua255MCsQAAjsFQEQFfWcZyUU="
+    user = user_factory.build(username_hash=test_username_hash)
 
     async with uow:
         await uow.users.save(user)
         await uow.commit()
 
     async with uow:
-        retrieved_user = await uow.users.find_by_username(user.username)
+        retrieved_user = await uow.users.find_by_username_hash(user.username_hash)
 
     assert retrieved_user is not None
     assert retrieved_user.id == user.id
@@ -240,11 +244,14 @@ async def test_prevent_duplicate_canonical_usernames(
     Asserts trying to persist two Users with identically canonicalized usernames
     translates raw IntegrityError into the clean domain UserAlreadyExistsError.
     """
+
+    username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
+
     user1 = user_factory.build(
-        user_id="018e6d2a-4f51-7000-8000-000000000001", username="CHARLIE.test"
+        user_id="018e6d2a-4f51-7000-8000-000000000001", username_hash=username_hash
     )
     user2 = user_factory.build(
-        user_id="018e6d2a-4f51-7000-8000-000000000002", username="charlie.test"
+        user_id="018e6d2a-4f51-7000-8000-000000000002", username_hash=username_hash
     )
 
     async with uow:
@@ -256,7 +263,7 @@ async def test_prevent_duplicate_canonical_usernames(
             await uow.users.save(user2)
             await uow.commit()
 
-    assert exc_info.value.username == "charlie.test"
+    assert exc_info.value.username_hash == username_hash
 
 
 @pytest.mark.asyncio

@@ -1,7 +1,7 @@
 # ADR-005: User Identification - Username and Salt Management
 
 ## Status
-Accepted
+Accepted -> Superseeded by **ADR 008**.
 
 ## Context
 Since Babylon is a ZK Password Manager, it require a mechanism to uniquely identify users and map them to their cryptographic salts.

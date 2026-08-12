@@ -10,7 +10,7 @@ from babylon.domain.value_objects import (
     MasterPasswordSalt,
     ServerAuthHash,
     UserId,
-    Username,
+    UsernameHash,
 )
 
 from .fakes import FakeSaltGenerator, FakeUnitOfWork
@@ -37,11 +37,13 @@ def salt_generator() -> FakeSaltGenerator:
 
 @pytest.fixture
 def user_factory(valid_phc_hash: str) -> Callable[[str, str, int], User]:
-    def _create_user(username: str, salt: str = "B" * 32, kdf_mem: int = 65536) -> User:
+    def _create_user(
+        username_hash: str, salt: str = "B" * 32, kdf_mem: int = 65536
+    ) -> User:
         return User(
             id=UserId(uuid.uuid7()),
             version=AggregateVersion(1),
-            username=Username(username),
+            username_hash=UsernameHash(username_hash),
             salt=MasterPasswordSalt(salt),
             server_authentication_hash=ServerAuthHash(valid_phc_hash),
             kdf_configuration=KdfConfiguration("argon2id", kdf_mem, 3, 4),

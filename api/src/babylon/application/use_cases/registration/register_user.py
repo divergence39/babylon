@@ -11,7 +11,7 @@ from babylon.domain.value_objects import (
     MasterPasswordSalt,
     ServerAuthHash,
     UserId,
-    Username,
+    UsernameHash,
 )
 
 from .dtos import RegisterUserCommandDTO, RegisterUserResponseDTO
@@ -26,15 +26,15 @@ class RegisterUser:
     async def __call__(self, dto: RegisterUserCommandDTO) -> RegisterUserResponseDTO:
         """Register a new user based on provided information."""
         async with self._uow as uow:
-            username = Username(dto.username)
-            existing_user = await uow.users.find_by_username(username)
+            username_hash = UsernameHash(dto.username_hash)
+            existing_user = await uow.users.find_by_username_hash(username_hash)
             if existing_user is not None:
-                raise UsernameAlreadyExistsError(dto.username)
+                raise UsernameAlreadyExistsError(dto.username_hash)
 
             user = User(
                 id=UserId(uuid.uuid7()),
                 version=AggregateVersion(1),
-                username=username,
+                username_hash=username_hash,
                 salt=MasterPasswordSalt(dto.salt),
                 server_authentication_hash=ServerAuthHash(dto.server_auth_hash),
                 kdf_configuration=KdfConfiguration(

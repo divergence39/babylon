@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from babylon.domain.entities import User
 from babylon.domain.ports import UnitOfWork, UserRepository
-from babylon.domain.value_objects import UserId, Username
+from babylon.domain.value_objects import UserId, UsernameHash
 from babylon.infrastructure.database.exceptions import DatabaseUnavailableError
 from babylon.infrastructure.database.repositories.user_repository import (
     SqlAlchemyUserRepository,
@@ -100,6 +100,6 @@ class _UninitializedUserRepository(UserRepository):
         _ = id
         raise UnitOfWorkNotEnteredError()
 
-    async def find_by_username(self, username: Username) -> User | None:
-        _ = username
+    async def find_by_username_hash(self, username_hash: UsernameHash) -> User | None:
+        _ = username_hash
         raise UnitOfWorkNotEnteredError()

@@ -21,6 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
+from babylon.domain.value_objects.username import _HASHED_USERNAME_LENGTH
 from babylon.infrastructure.database.base import Base
 
 
@@ -34,7 +35,9 @@ class UserModel(Base):
     )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
-    username: Mapped[str] = mapped_column(String(length=32), nullable=False)
+    username: Mapped[str] = mapped_column(
+        String(length=_HASHED_USERNAME_LENGTH), nullable=False
+    )
     salt: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     server_auth_hash: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     kdf_configuration: Mapped[dict[str, int | str]] = mapped_column(

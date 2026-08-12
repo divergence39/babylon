@@ -15,12 +15,12 @@ from babylon.domain.value_objects import (
     MasterPasswordSalt,
     ServerAuthHash,
     UserId,
-    Username,
+    UsernameHash,
 )
 
 _DEFAULT_USER_ID = UUID("018e6c4e-5e13-7fa3-aecd-8c4cc87ed165")
 _DEFAULT_VERSION = AggregateVersion(1)
-_DEFAULT_USERNAME = "alice.smith"
+_DEFAULT_USERNAME_HASH = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
 _DEFAULT_SALT = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 _DEFAULT_SERVER_AUTH_HASH = "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQ"
 _DEFAULT_KDF_CONFIGURATION = KdfConfiguration(
@@ -34,10 +34,10 @@ class UserIdFactory(DataclassFactory[UserId]):
     value = _DEFAULT_USER_ID
 
 
-class UsernameFactory(DataclassFactory[Username]):
-    """Build valid Username value objects for tests."""
+class UsernameHashFactory(DataclassFactory[UsernameHash]):
+    """Build valid UsernameHash value objects for tests."""
 
-    value = _DEFAULT_USERNAME
+    value = _DEFAULT_USERNAME_HASH
 
 
 class MasterPasswordSaltFactory(DataclassFactory[MasterPasswordSalt]):
@@ -74,7 +74,7 @@ class UserFactory(BaseFactory[User]):
 
     id = UserIdFactory
     version = AggregateVersionFactory
-    username = UsernameFactory
+    username_hash = UsernameHashFactory
     salt = MasterPasswordSaltFactory
     server_authentication_hash = ServerAuthHashFactory
     kdf_configuration = KdfConfigurationFactory
@@ -90,7 +90,7 @@ class UserFactory(BaseFactory[User]):
         return [
             FieldMeta.from_type(annotation=UserId, name="id"),
             FieldMeta.from_type(annotation=AggregateVersion, name="version"),
-            FieldMeta.from_type(annotation=Username, name="username"),
+            FieldMeta.from_type(annotation=UsernameHash, name="username_hash"),
             FieldMeta.from_type(annotation=MasterPasswordSalt, name="salt"),
             FieldMeta.from_type(
                 annotation=ServerAuthHash, name="server_authentication_hash"
@@ -104,7 +104,7 @@ class UserFactory(BaseFactory[User]):
         *,
         user_id: str | UUID | UserId | None = None,
         version: int | AggregateVersion | None = None,
-        username: str | Username | None = None,
+        username_hash: str | UsernameHash | None = None,
         **kwargs: Any,
     ) -> User:
         """Build a User aggregate, accepting raw ID, version, and username overrides."""
@@ -120,11 +120,11 @@ class UserFactory(BaseFactory[User]):
                 if isinstance(version, AggregateVersion)
                 else AggregateVersionFactory.build(value=version)
             )
-        if username is not None:
-            kwargs["username"] = (
-                username
-                if isinstance(username, Username)
-                else UsernameFactory.build(value=username)
+        if username_hash is not None:
+            kwargs["username_hash"] = (
+                username_hash
+                if isinstance(username_hash, UsernameHash)
+                else UsernameHashFactory.build(value=username_hash)
             )
         return super().build(**kwargs)
 

@@ -9,12 +9,12 @@ from babylon.domain.value_objects import (
     MasterPasswordSalt,
     ServerAuthHash,
     UserId,
-    Username,
+    UsernameHash,
 )
 
 _ID_TYPE_ERROR: Final[str] = "id must be a UserId"
 _VERSION_TYPE_ERROR: Final[str] = "version must be an AggregateVersion"
-_USERNAME_TYPE_ERROR: Final[str] = "username must be a Username"
+_USERNAME_HASH_TYPE_ERROR: Final[str] = "username hash must be a UsernameHash"
 _SALT_TYPE_ERROR: Final[str] = "salt must be a MasterPasswordSalt"
 _AUTH_HASH_TYPE_ERROR: Final[str] = "the authentication hash must be a ServerAuthHash"
 _KDF_CONFIGURATION_TYPE_ERROR: Final[str] = (
@@ -28,7 +28,7 @@ class User:
     Attributes:
         id (UserId): The user's unique identity.
         version (AggregateVersion): The optimistic concurrency version.
-        username (Username): The user's canonical username.
+        username (UsernameHash): The user's canonical username hashed.
         salt (MasterPasswordSalt): The persisted salt for master-password derivation.
         server_authentication_hash (ServerAuthHash): The persisted server auth hash.
         kdf_configuration (KdfConfiguration): The active Argon2id configuration.
@@ -38,7 +38,7 @@ class User:
         self,
         id: UserId,
         version: AggregateVersion,
-        username: Username,
+        username_hash: UsernameHash,
         salt: MasterPasswordSalt,
         server_authentication_hash: ServerAuthHash,
         kdf_configuration: KdfConfiguration,
@@ -47,8 +47,8 @@ class User:
             raise UserValidationError(_ID_TYPE_ERROR)
         if not isinstance(version, AggregateVersion):
             raise UserValidationError(_VERSION_TYPE_ERROR)
-        if not isinstance(username, Username):
-            raise UserValidationError(_USERNAME_TYPE_ERROR)
+        if not isinstance(username_hash, UsernameHash):
+            raise UserValidationError(_USERNAME_HASH_TYPE_ERROR)
         if not isinstance(salt, MasterPasswordSalt):
             raise UserValidationError(_SALT_TYPE_ERROR)
         if not isinstance(server_authentication_hash, ServerAuthHash):
@@ -58,7 +58,7 @@ class User:
 
         self._id = id
         self._version = version
-        self._username = username
+        self._username_hash = username_hash
         self._salt = salt
         self._server_authentication_hash = server_authentication_hash
         self._kdf_configuration = kdf_configuration
@@ -74,9 +74,9 @@ class User:
         return self._version
 
     @property
-    def username(self) -> Username:
-        """The user's canonical username."""
-        return self._username
+    def username_hash(self) -> UsernameHash:
+        """The user's canonical username hashed."""
+        return self._username_hash
 
     @property
     def salt(self) -> MasterPasswordSalt:

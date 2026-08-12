@@ -20,7 +20,8 @@ class TestRotateCredentials:
     async def test_rotate_credentials_happy_path(
         self, uow, user_factory, valid_phc_hash, new_valid_phc_hash
     ):
-        existing_user = user_factory("test.user")
+        test_username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
+        existing_user = user_factory(test_username_hash)
         original_version = existing_user.version.value
         await uow.users.save(existing_user)
 
@@ -71,7 +72,8 @@ class TestRotateCredentials:
     async def test_rotate_credentials_wrong_hash(
         self, uow, user_factory, valid_phc_hash, new_valid_phc_hash
     ):
-        existing_user = user_factory("test.user")
+        test_username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
+        existing_user = user_factory(test_username_hash)
         await uow.users.save(existing_user)
 
         use_case = RotateCredentials(uow)

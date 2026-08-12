@@ -6,6 +6,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
+from babylon.domain.value_objects.username import _HASHED_USERNAME_LENGTH
+
 revision: str = "0001_create_users_table"
 down_revision: str | None = None
 branch_labels: Sequence[str] | None = None
@@ -17,7 +19,9 @@ def upgrade() -> None:
     op.create_table(
         "users",
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("username", sa.String(length=32), nullable=False),
+        sa.Column(
+            "username", sa.String(length=_HASHED_USERNAME_LENGTH), nullable=False
+        ),
         sa.Column("salt", sa.LargeBinary(), nullable=False),
         sa.Column("server_auth_hash", sa.LargeBinary(), nullable=False),
         sa.Column("kdf_configuration", postgresql.JSONB(), nullable=False),
