@@ -2,11 +2,12 @@ import uuid
 
 import pytest
 
-from babylon.application.exceptions import InvalidCredentialsError, UserNotFoundError
-from babylon.application.use_cases.credential_rotation import (
+from babylon.auth.application.exceptions import UserNotFoundError
+from babylon.auth.application.rotate_credentials import (
     RotateCredentials,
     RotateCredentialsCommandDTO,
 )
+from babylon.auth.domain.exceptions import InvalidCredentialsError
 
 
 @pytest.fixture
@@ -23,7 +24,7 @@ class TestRotateCredentials:
         test_username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
         existing_user = user_factory(test_username_hash)
         original_version = existing_user.version.value
-        await uow.users.save(existing_user)
+        await uow.users.add(existing_user)
 
         use_case = RotateCredentials(uow)
 
@@ -74,7 +75,8 @@ class TestRotateCredentials:
     ):
         test_username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
         existing_user = user_factory(test_username_hash)
-        await uow.users.save(existing_user)
+
+        await uow.users.add(existing_user)
 
         use_case = RotateCredentials(uow)
 

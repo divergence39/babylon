@@ -1,7 +1,7 @@
 import pytest
 
-from babylon.domain.exceptions import KdfConfigurationValidationError
-from babylon.domain.value_objects import KdfConfiguration
+from babylon.auth.domain.exceptions import KdfConfigurationValidationError
+from babylon.auth.domain.value_objects import KdfConfiguration
 
 
 class TestKdfConfiguration:

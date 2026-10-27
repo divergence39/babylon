@@ -11,7 +11,7 @@ A decision must be made in order to mitigate these problems.
 
 ## Considered Options
 2. **System-Generated UUIDs**: Immune to enumeration and 100% anonymous, but provides a hostile UX, forcing users to memorize or store an unwieldy string alongside their Master Password, canceling out the benefits of the username usage.
-3. **Hashed Usernames (Blind Indexing)**: Thsi mechanism brings the benefit of both a user friendly interface, easy to rememeber credentials, and a safe comunication and a privacy safe storage.
+3. **Hashed Usernames (Blind Indexing)**: This mechanism brings the benefit of both a user friendly interface, easy to rememeber credentials, and a safe comunication and a privacy safe storage.
 
 ## Decision
 Babylon will adopt the hashed usernames. The user will still be completely able to use only their user-friendly usernames to identify themselves. The nicknames will then be hashed and send to the server: in this way the real user's username will never leave the client side.

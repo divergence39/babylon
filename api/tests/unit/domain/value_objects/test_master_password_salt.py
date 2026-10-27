@@ -2,8 +2,8 @@ from typing import cast
 
 import pytest
 
-from babylon.domain.exceptions import MasterPasswordSaltValidationError
-from babylon.domain.value_objects import MasterPasswordSalt
+from babylon.auth.domain.exceptions import MasterPasswordSaltValidationError
+from babylon.auth.domain.value_objects import MasterPasswordSalt
 
 
 class TestMasterPasswordSalt:

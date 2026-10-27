@@ -2,9 +2,9 @@ import uuid
 
 import pytest
 
-from babylon.domain.entities import User
-from babylon.domain.exceptions import UserValidationError
-from babylon.domain.value_objects import (
+from babylon.auth.domain.entities import User
+from babylon.auth.domain.exceptions import InvalidCredentialsError, UserValidationError
+from babylon.auth.domain.value_objects import (
     AggregateVersion,
     KdfConfiguration,
     MasterPasswordSalt,
@@ -154,7 +154,7 @@ class TestUserEntity:
         )
         new_kdf = KdfConfiguration("argon2id", 131072, 4, 4)
 
-        user.rotate_credentials(new_salt, new_hash, new_kdf)
+        user.rotate_credentials(valid_hash, new_salt, new_hash, new_kdf)
 
         assert user.salt == new_salt
         assert user.server_authentication_hash == new_hash
@@ -237,11 +237,53 @@ class TestUserEntity:
             kdf_configuration=valid_kdf,
         )
 
+        new_hash = ServerAuthHash(
+            "$argon2id$v=19$m=131072,t=4,p=4$bmV3c2FsdA$bmV3aGFzaA"
+        )
+        new_kdf = KdfConfiguration("argon2id", 131072, 4, 4)
+
         with pytest.raises(
             UserValidationError, match="salt must be a MasterPasswordSalt"
         ):
             user.rotate_credentials(
+                current_server_auth_hash=valid_hash,
                 new_salt="invalid_salt",  # type: ignore
-                new_server_auth_hash=valid_hash,
-                new_kdf_configuration=valid_kdf,
+                new_server_auth_hash=new_hash,
+                new_kdf_configuration=new_kdf,
+            )
+
+    def test_cannot_rotate_credentials_with_invalid_credentials(
+        self,
+        base_id: UserId,
+        valid_version: AggregateVersion,
+        valid_username: UsernameHash,
+        valid_salt: MasterPasswordSalt,
+        valid_hash: ServerAuthHash,
+        valid_kdf: KdfConfiguration,
+    ) -> None:
+        user = User(
+            id=base_id,
+            version=valid_version,
+            username_hash=valid_username,
+            salt=valid_salt,
+            server_authentication_hash=valid_hash,
+            kdf_configuration=valid_kdf,
+        )
+
+        wrong_hash = ServerAuthHash(
+            "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$dmFsaWRoYXNoZm9ydGVzdGluZw=="
+        )
+
+        new_salt = MasterPasswordSalt("b" * 64)
+        new_hash = ServerAuthHash(
+            "$argon2id$v=19$m=131072,t=4,p=4$bmV3c2FsdA$bmV3aGFzaA"
+        )
+        new_kdf = KdfConfiguration("argon2id", 131072, 4, 4)
+
+        with pytest.raises(InvalidCredentialsError):
+            user.rotate_credentials(
+                current_server_auth_hash=wrong_hash,
+                new_salt=new_salt,
+                new_server_auth_hash=new_hash,
+                new_kdf_configuration=new_kdf,
             )

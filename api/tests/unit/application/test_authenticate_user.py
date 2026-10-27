@@ -1,11 +1,11 @@
 import pytest
 
-from babylon.application.exceptions import InvalidCredentialsError
-from babylon.application.use_cases.authentication import (
+from babylon.auth.application.authenticate import (
     AuthenticateUser,
     AuthenticateUserQueryDTO,
     AuthenticateUserResponseDTO,
 )
+from babylon.auth.domain.exceptions import InvalidCredentialsError
 
 
 class TestAuthenticateUser:
@@ -15,7 +15,9 @@ class TestAuthenticateUser:
     ):
         existing_username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
         existing_user = user_factory(existing_username_hash)
-        await uow.users.save(existing_user)
+        async with uow:
+            await uow.users.add(existing_user)
+            await uow.commit()
 
         use_case = AuthenticateUser(uow)
         dto = AuthenticateUserQueryDTO(
@@ -26,7 +28,6 @@ class TestAuthenticateUser:
         assert isinstance(response, AuthenticateUserResponseDTO)
         assert response.user_id == str(existing_user.id.value)
         assert not uow.committed
-        assert not uow.rolled_back
 
     @pytest.mark.asyncio
     async def test_authenticate_user_sad_path_not_found(self, uow, valid_phc_hash):
@@ -45,7 +46,7 @@ class TestAuthenticateUser:
     async def test_authenticate_user_sad_path_wrong_hash(self, uow, user_factory):
         test_username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
         existing_user = user_factory(test_username_hash)
-        await uow.users.save(existing_user)
+        await uow.users.add(existing_user)
 
         use_case = AuthenticateUser(uow)
 

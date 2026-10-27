@@ -1,6 +1,6 @@
 import pytest
 
-from babylon.application.use_cases.registration import (
+from babylon.auth.application.get_login_options import (
     GetLoginOptions,
     GetLoginOptionsQueryDTO,
     GetLoginOptionsResponseDTO,
@@ -17,7 +17,7 @@ class TestGetLoginOptions:
         existing_user = user_factory(
             existing_username_hash, salt=valid_base64_salt, kdf_mem=100000
         )
-        await uow.users.save(existing_user)
+        await uow.users.add(existing_user)
 
         use_case = GetLoginOptions(uow, salt_generator)
         dto = GetLoginOptionsQueryDTO(username_hash=existing_username_hash)
@@ -29,7 +29,6 @@ class TestGetLoginOptions:
         assert response.kdf_time_cost == 3
         assert response.kdf_parallelism == 4
         assert not uow.committed
-        assert not uow.rolled_back
 
     @pytest.mark.asyncio
     async def test_get_login_options_user_does_not_exist(self, uow, salt_generator):
@@ -47,4 +46,4 @@ class TestGetLoginOptions:
         assert response.kdf_time_cost > 0
         assert response.kdf_parallelism > 0
         assert not uow.committed
-        assert not uow.rolled_back
+        assert uow.rolled_back

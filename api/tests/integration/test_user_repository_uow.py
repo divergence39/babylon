@@ -1,46 +1,56 @@
 import asyncio
+import base64
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
+    AsyncConnection,
     AsyncSession,
     async_sessionmaker,
 )
 
-from babylon.domain.exceptions import UserAlreadyExistsError, UserConcurrencyError
-from babylon.domain.ports import UnitOfWork
-from babylon.domain.value_objects import (
+from babylon.auth.domain.ports.user_repository import (
+    UserAlreadyExistsError,
+    UserConcurrencyError,
+)
+from babylon.auth.domain.value_objects import (
     AggregateVersion,
     KdfConfiguration,
     MasterPasswordSalt,
     ServerAuthHash,
 )
-from babylon.infrastructure.database.models import UserModel
-from babylon.infrastructure.database.uow import SqlAlchemyUnitOfWork
+from babylon.auth.infrastructure.database.models import UserModel
+from babylon.auth.infrastructure.database.uow import SqlAlchemyUnitOfWork
 
 from .factories import UserFactory
 
 
 @pytest.fixture
-def uow(db_session: AsyncSession) -> UnitOfWork:
-    """Returns the SQLAlchemy UnitOfWork backed by the test session."""
-    return SqlAlchemyUnitOfWork(
-        session_factory=lambda: db_session,
-        owns_session=False,
+def session_factory(connection: AsyncConnection) -> async_sessionmaker[AsyncSession]:
+    """Factory per generare sessioni asincrone pulite agganciate all'engine di test."""
+    return async_sessionmaker(
+        bind=connection,
+        expire_on_commit=False,
+        join_transaction_mode="create_savepoint",
     )
+
+
+@pytest.fixture
+def uow(session_factory: async_sessionmaker[AsyncSession]) -> SqlAlchemyUnitOfWork:
+    """Fixture standard per i test che necessitano di una UoW ordinaria."""
+    return SqlAlchemyUnitOfWork(session_factory=session_factory)
 
 
 @pytest.mark.asyncio
 async def test_save_and_find_user_returns_pure_domain_entity(
-    uow: UnitOfWork,
+    uow: SqlAlchemyUnitOfWork,
     user_factory: type[UserFactory],
 ) -> None:
     """Asserts that a user can be saved and retrieved by ID as a pure Domain Entity."""
     user = user_factory.build()
 
     async with uow:
-        await uow.users.save(user)
+        await uow.users.add(user)
         await uow.commit()
 
     async with uow:
@@ -57,7 +67,7 @@ async def test_save_and_find_user_returns_pure_domain_entity(
 
 @pytest.mark.asyncio
 async def test_last_modification_time_set_on_insert(
-    uow: UnitOfWork,
+    uow: SqlAlchemyUnitOfWork,
     user_factory: type[UserFactory],
     db_session: AsyncSession,
 ) -> None:
@@ -65,7 +75,7 @@ async def test_last_modification_time_set_on_insert(
     user = user_factory.build()
 
     async with uow:
-        await uow.users.save(user)
+        await uow.users.add(user)
         await uow.commit()
 
     result = await db_session.execute(
@@ -85,7 +95,7 @@ async def test_last_modification_time_set_on_insert(
 
 @pytest.mark.asyncio
 async def test_last_modification_time_updates_on_change(
-    uow: UnitOfWork,
+    uow: SqlAlchemyUnitOfWork,
     user_factory: type[UserFactory],
     db_session: AsyncSession,
 ) -> None:
@@ -93,7 +103,7 @@ async def test_last_modification_time_updates_on_change(
     user = user_factory.build()
 
     async with uow:
-        await uow.users.save(user)
+        await uow.users.add(user)
         await uow.commit()
 
     result = await db_session.execute(
@@ -107,6 +117,7 @@ async def test_last_modification_time_updates_on_change(
     await asyncio.sleep(0.01)
 
     user.rotate_credentials(
+        current_server_auth_hash=user.server_authentication_hash,
         new_salt=MasterPasswordSalt(value="E" * 32),
         new_server_auth_hash=ServerAuthHash(
             value="$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQA4"
@@ -117,7 +128,7 @@ async def test_last_modification_time_updates_on_change(
     )
 
     async with uow:
-        await uow.users.save(user)
+        await uow.users.update(user)
         await uow.commit()
 
     result = await db_session.execute(
@@ -132,31 +143,26 @@ async def test_last_modification_time_updates_on_change(
 
 @pytest.mark.asyncio
 async def test_save_without_commit_does_not_persist(
-    uow: UnitOfWork,
+    uow: SqlAlchemyUnitOfWork,
     user_factory: type[UserFactory],
-    engine: AsyncEngine,
+    session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     """Asserts data is not committed unless commit() is called explicitly."""
     user = user_factory.build()
 
     async with uow:
-        await uow.users.save(user)
+        await uow.users.add(user)
 
-    async_session = async_sessionmaker(bind=engine, expire_on_commit=False)
-    async with async_session() as verification_session:
-        verification_uow = SqlAlchemyUnitOfWork(
-            session_factory=lambda: verification_session,
-            owns_session=False,
-        )
-        async with verification_uow:
-            retrieved_user = await verification_uow.users.find_by_id(user.id)
+    verification_uow = SqlAlchemyUnitOfWork(session_factory=session_factory)
+    async with verification_uow:
+        retrieved_user = await verification_uow.users.find_by_id(user.id)
 
     assert retrieved_user is None
 
 
 @pytest.mark.asyncio
 async def test_unique_violation_rolls_back_and_allows_retry(
-    uow: UnitOfWork,
+    uow: SqlAlchemyUnitOfWork,
     user_factory: type[UserFactory],
 ) -> None:
     """Asserts a deterministic unique-constraint failure rolls back cleanly."""
@@ -167,7 +173,7 @@ async def test_unique_violation_rolls_back_and_allows_retry(
     )
 
     async with uow:
-        await uow.users.save(user)
+        await uow.users.add(user)
         await uow.commit()
 
     duplicate = user_factory.build(
@@ -175,12 +181,10 @@ async def test_unique_violation_rolls_back_and_allows_retry(
         username_hash=user.username_hash.value,
     )
 
-    with pytest.raises(UserAlreadyExistsError) as exc_info:  # noqa: PT012
+    with pytest.raises(UserAlreadyExistsError):  # noqa: PT012
         async with uow:
-            await uow.users.save(duplicate)
+            await uow.users.add(duplicate)
             await uow.commit()
-
-    assert exc_info.value.username_hash == user.username_hash.value
 
     test_username_hash_retry = "ziciPa56GT7tKXHt5xua255MCsQAAjsFQEQFfWcZyUU="
 
@@ -190,7 +194,7 @@ async def test_unique_violation_rolls_back_and_allows_retry(
     )
 
     async with uow:
-        await uow.users.save(retry_user)
+        await uow.users.add(retry_user)
         await uow.commit()
 
     async with uow:
@@ -202,7 +206,7 @@ async def test_unique_violation_rolls_back_and_allows_retry(
 
 @pytest.mark.asyncio
 async def test_find_by_username_returns_pure_domain_entity(
-    uow: UnitOfWork,
+    uow: SqlAlchemyUnitOfWork,
     user_factory: type[UserFactory],
 ) -> None:
     """Asserts retrieval by canonical username_hash rehydrates the domain entity."""
@@ -210,7 +214,7 @@ async def test_find_by_username_returns_pure_domain_entity(
     user = user_factory.build(username_hash=test_username_hash)
 
     async with uow:
-        await uow.users.save(user)
+        await uow.users.add(user)
         await uow.commit()
 
     async with uow:
@@ -223,7 +227,7 @@ async def test_find_by_username_returns_pure_domain_entity(
 
 @pytest.mark.asyncio
 async def test_find_by_id_returns_none_if_not_found(
-    uow: UnitOfWork,
+    uow: SqlAlchemyUnitOfWork,
     user_factory: type[UserFactory],
 ) -> None:
     """Asserts retrieving a missing User returns None."""
@@ -237,7 +241,7 @@ async def test_find_by_id_returns_none_if_not_found(
 
 @pytest.mark.asyncio
 async def test_prevent_duplicate_canonical_usernames(
-    uow: UnitOfWork,
+    uow: SqlAlchemyUnitOfWork,
     user_factory: type[UserFactory],
 ) -> None:
     """
@@ -248,27 +252,25 @@ async def test_prevent_duplicate_canonical_usernames(
     username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
 
     user1 = user_factory.build(
-        user_id="018e6d2a-4f51-7000-8000-000000000001", username_hash=username_hash
+        user_id="018e6d2a4f5170008000000000000001", username_hash=username_hash
     )
     user2 = user_factory.build(
-        user_id="018e6d2a-4f51-7000-8000-000000000002", username_hash=username_hash
+        user_id="018e6d2a4f5170008000000000000002", username_hash=username_hash
     )
 
     async with uow:
-        await uow.users.save(user1)
+        await uow.users.add(user1)
         await uow.commit()
 
-    with pytest.raises(UserAlreadyExistsError) as exc_info:  # noqa: PT012
+    with pytest.raises(UserAlreadyExistsError):  # noqa: PT012
         async with uow:
-            await uow.users.save(user2)
+            await uow.users.add(user2)
             await uow.commit()
-
-    assert exc_info.value.username_hash == username_hash
 
 
 @pytest.mark.asyncio
 async def test_uow_rollback_prevents_persistence(
-    uow: UnitOfWork,
+    uow: SqlAlchemyUnitOfWork,
     user_factory: type[UserFactory],
 ) -> None:
     """Asserts that raising an exception inside UOW rolls back the transaction."""
@@ -276,7 +278,7 @@ async def test_uow_rollback_prevents_persistence(
 
     with pytest.raises(ValueError, match="fail"):  # noqa: PT012
         async with uow:
-            await uow.users.save(user)
+            await uow.users.add(user)
             raise ValueError("fail")
 
     async with uow:
@@ -286,20 +288,21 @@ async def test_uow_rollback_prevents_persistence(
 
 
 @pytest.mark.asyncio
-async def test_save_updates_existing_user(
-    uow: UnitOfWork,
+async def test_update_existing_user(
+    uow: SqlAlchemyUnitOfWork,
     user_factory: type[UserFactory],
 ) -> None:
-    """Asserts that calling save on an already persisted user updates their record."""
+    """Asserts that calling update on a persisted user updates their record."""
     user = user_factory.build()
     original_version = user.version
 
     async with uow:
-        await uow.users.save(user)
+        await uow.users.add(user)
         await uow.commit()
 
-    # Mutate aggregate data correctly using the domain method
-    new_salt = MasterPasswordSalt(value="BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=")
+    new_salt = MasterPasswordSalt(
+        value=base64.b64encode(b"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC").decode()
+    )
     new_auth_hash = ServerAuthHash(
         value="$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQNEW"
     )
@@ -308,6 +311,7 @@ async def test_save_updates_existing_user(
     )
 
     user.rotate_credentials(
+        current_server_auth_hash=user.server_authentication_hash,
         new_salt=new_salt,
         new_server_auth_hash=new_auth_hash,
         new_kdf_configuration=new_kdf,
@@ -316,7 +320,7 @@ async def test_save_updates_existing_user(
     assert user.version == original_version.next_version()
 
     async with uow:
-        await uow.users.save(user)
+        await uow.users.update(user)
         await uow.commit()
 
     async with uow:
@@ -330,73 +334,61 @@ async def test_save_updates_existing_user(
 
 
 @pytest.mark.asyncio
-@pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
 async def test_concurrent_updates_raise_conflict(
-    uow: UnitOfWork,
+    session_factory: async_sessionmaker[AsyncSession],
     user_factory: type[UserFactory],
-    db_session: AsyncSession,
 ) -> None:
     """Asserts concurrent updates surface as a UserConcurrencyError."""
+    uow_setup = SqlAlchemyUnitOfWork(session_factory=session_factory)
     user = user_factory.build()
+    async with uow_setup:
+        await uow_setup.users.add(user)
+        await uow_setup.commit()
 
-    async with uow:
-        await uow.users.save(user)
-        await uow.commit()
+    uow_a = SqlAlchemyUnitOfWork(session_factory=session_factory)
+    uow_b = SqlAlchemyUnitOfWork(session_factory=session_factory)
 
-    engine = db_session.bind
-    async_session = async_sessionmaker(
-        bind=engine,
-        expire_on_commit=False,
+    async with uow_a:
+        user_a = await uow_a.users.find_by_id(user.id)
+
+    async with uow_b:
+        user_b = await uow_b.users.find_by_id(user.id)
+
+    assert user_a is not None
+    assert user_b is not None
+    assert user_a.version == AggregateVersion(1)
+    assert user_b.version == AggregateVersion(1)
+
+    user_a.rotate_credentials(
+        current_server_auth_hash=user_a.server_authentication_hash,
+        new_salt=MasterPasswordSalt(value="C" * 32),
+        new_server_auth_hash=ServerAuthHash(
+            value="$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQA2"
+        ),
+        new_kdf_configuration=KdfConfiguration(
+            algorithm="argon2id", memory_kb=65536, iterations=3, parallelism=4
+        ),
     )
-    async with async_session() as session_a, async_session() as session_b:
-        uow_a = SqlAlchemyUnitOfWork(
-            session_factory=lambda: session_a,
-            owns_session=False,
-        )
-        uow_b = SqlAlchemyUnitOfWork(
-            session_factory=lambda: session_b,
-            owns_session=False,
-        )
 
-        async with uow_a:
-            user_a = await uow_a.users.find_by_id(user.id)
+    async with uow_a:
+        await uow_a.users.update(user_a)
+        await uow_a.commit()
 
+    user_b.rotate_credentials(
+        current_server_auth_hash=user_b.server_authentication_hash,
+        new_salt=MasterPasswordSalt(value="D" * 32),
+        new_server_auth_hash=ServerAuthHash(
+            value="$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQA3"
+        ),
+        new_kdf_configuration=KdfConfiguration(
+            algorithm="argon2id", memory_kb=65536, iterations=3, parallelism=4
+        ),
+    )
+
+    async def _test_update_b() -> None:
         async with uow_b:
-            user_b = await uow_b.users.find_by_id(user.id)
+            await uow_b.users.update(user_b)
+            await uow_b.commit()
 
-        assert user_a is not None
-        assert user_b is not None
-        assert user_a.version == AggregateVersion(1)
-        assert user_b.version == AggregateVersion(1)
-
-        user_a.rotate_credentials(
-            new_salt=MasterPasswordSalt(value="C" * 32),
-            new_server_auth_hash=ServerAuthHash(
-                value="$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQA2"
-            ),
-            new_kdf_configuration=KdfConfiguration(
-                algorithm="argon2id", memory_kb=65536, iterations=3, parallelism=4
-            ),
-        )
-
-        async with uow_a:
-            await uow_a.users.save(user_a)
-            await uow_a.commit()
-
-        user_b.rotate_credentials(
-            new_salt=MasterPasswordSalt(value="D" * 32),
-            new_server_auth_hash=ServerAuthHash(
-                value="$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQA3"
-            ),
-            new_kdf_configuration=KdfConfiguration(
-                algorithm="argon2id", memory_kb=65536, iterations=3, parallelism=4
-            ),
-        )
-
-        async def _commit_conflicting_update() -> None:
-            async with uow_b:
-                await uow_b.users.save(user_b)
-                await uow_b.commit()
-
-        with pytest.raises(UserConcurrencyError):
-            await _commit_conflicting_update()
+    with pytest.raises(UserConcurrencyError):
+        await _test_update_b()

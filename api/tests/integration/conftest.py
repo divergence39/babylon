@@ -7,6 +7,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import NullPool
 from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
@@ -62,41 +63,39 @@ def apply_migrations(
 
 
 @pytest.fixture(scope="session")
-async def engine(
-    test_database_url: str,
-) -> AsyncGenerator[AsyncEngine]:
-    """Creates a session-wide AsyncEngine using NullPool for pure isolation."""
+async def engine(test_database_url: str) -> AsyncGenerator[AsyncEngine]:
+    """Provide a session-scoped SQLAlchemy AsyncEngine for the test database."""
     test_engine = create_async_engine(
         test_database_url,
         poolclass=NullPool,
         echo=False,
     )
-
     yield test_engine
-
-    # Explicitly dispose to prevent connection hanging
     await test_engine.dispose()
 
 
 @pytest.fixture
-async def db_session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession]:
-    """Establishes a completely isolated SAVEPOINT (nested transaction) per test."""
-    connection = await engine.connect()
-    trans = await connection.begin()
+async def connection(engine: AsyncEngine) -> AsyncGenerator[AsyncConnection]:
+    """Provide a function-scoped SQLAlchemy AsyncConnection for the test database."""
+    conn = await engine.connect()
+    trans = await conn.begin()
 
+    yield conn
+
+    await trans.rollback()
+    await conn.close()
+
+
+@pytest.fixture
+async def db_session(connection: AsyncConnection) -> AsyncGenerator[AsyncSession]:
+    """Provide a function-scoped SQLAlchemy AsyncSession for the test database."""
     async_session = async_sessionmaker(
         bind=connection,
         expire_on_commit=False,
         join_transaction_mode="create_savepoint",
     )
-
-    session = async_session()
-
-    yield session
-
-    await session.close()
-    await trans.rollback()
-    await connection.close()
+    async with async_session() as session:
+        yield session
 
 
 @pytest.fixture
