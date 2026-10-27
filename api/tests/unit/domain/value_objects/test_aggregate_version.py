@@ -2,8 +2,8 @@ from typing import cast
 
 import pytest
 
-from babylon.domain.exceptions import AggregateVersionValidationError
-from babylon.domain.value_objects import AggregateVersion
+from babylon.auth.domain.exceptions import AggregateVersionValidationError
+from babylon.auth.domain.value_objects import AggregateVersion
 
 
 class TestAggregateVersion:

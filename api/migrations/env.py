@@ -9,7 +9,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio.engine import async_engine_from_config
 
-from babylon.infrastructure.database.models import Base
+from babylon.shared.infrastructure.database.base import Base
 
 
 class MissingDatabaseUrlError(ValueError):

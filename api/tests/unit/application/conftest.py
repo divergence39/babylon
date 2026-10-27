@@ -3,8 +3,8 @@ from collections.abc import Callable
 
 import pytest
 
-from babylon.domain.entities import User
-from babylon.domain.value_objects import (
+from babylon.auth.domain.entities import User
+from babylon.auth.domain.value_objects import (
     AggregateVersion,
     KdfConfiguration,
     MasterPasswordSalt,

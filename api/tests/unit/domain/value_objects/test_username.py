@@ -2,8 +2,8 @@ from typing import cast
 
 import pytest
 
-from babylon.domain.exceptions import UsernameValidationError
-from babylon.domain.value_objects import UsernameHash
+from babylon.auth.domain.exceptions import UsernameValidationError
+from babylon.auth.domain.value_objects import UsernameHash
 
 
 class TestUsername:

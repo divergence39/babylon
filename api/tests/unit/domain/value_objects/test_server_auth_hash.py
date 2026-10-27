@@ -1,7 +1,7 @@
 import pytest
 
-from babylon.domain.exceptions import ServerAuthHashValidationError
-from babylon.domain.value_objects import ServerAuthHash
+from babylon.auth.domain.exceptions import ServerAuthHashValidationError
+from babylon.auth.domain.value_objects import ServerAuthHash
 
 
 class TestAuthHash:

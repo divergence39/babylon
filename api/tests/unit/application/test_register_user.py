@@ -1,13 +1,13 @@
 import pytest
 
-from babylon.application.exceptions import UsernameAlreadyExistsError
-from babylon.application.use_cases.registration import (
+from babylon.auth.application.register import (
     RegisterUser,
     RegisterUserCommandDTO,
     RegisterUserResponseDTO,
 )
-from babylon.domain.exceptions import UsernameValidationError
-from babylon.domain.value_objects import UsernameHash
+from babylon.auth.domain.exceptions import UsernameValidationError
+from babylon.auth.domain.ports.user_repository import UserAlreadyExistsError
+from babylon.auth.domain.value_objects import UsernameHash
 
 
 class TestRegisterUser:
@@ -38,7 +38,7 @@ class TestRegisterUser:
     ):
         existing_username_hash = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
         existing_user = user_factory(existing_username_hash)
-        await uow.users.save(existing_user)
+        await uow.users.add(existing_user)
 
         use_case = RegisterUser(uow)
         dto = RegisterUserCommandDTO(
@@ -50,7 +50,7 @@ class TestRegisterUser:
             kdf_parallelism=4,
         )
 
-        with pytest.raises(UsernameAlreadyExistsError):
+        with pytest.raises(UserAlreadyExistsError):
             await use_case(dto)
 
         assert not uow.committed
@@ -70,4 +70,4 @@ class TestRegisterUser:
         with pytest.raises(UsernameValidationError):
             await use_case(dto)
         assert not uow.committed
-        assert uow.rolled_back
+        assert not uow.rolled_back

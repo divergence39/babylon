@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import base64
 from typing import Any, TypeGuard
 from uuid import UUID
 
 from polyfactory.factories import BaseFactory, DataclassFactory
 from polyfactory.field_meta import FieldMeta
 
-from babylon.domain.entities import User
-from babylon.domain.value_objects import (
+from babylon.auth.domain.entities import User
+from babylon.auth.domain.value_objects import (
     AggregateVersion,
     KdfConfiguration,
     MasterPasswordSalt,
@@ -21,7 +22,7 @@ from babylon.domain.value_objects import (
 _DEFAULT_USER_ID = UUID("018e6c4e-5e13-7fa3-aecd-8c4cc87ed165")
 _DEFAULT_VERSION = AggregateVersion(1)
 _DEFAULT_USERNAME_HASH = "MpY6dddb+ipakoYR7mxT69OdERLt+aocCgrztICn9X8="
-_DEFAULT_SALT = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+_DEFAULT_SALT = base64.b64encode(b"A" * 32).decode()
 _DEFAULT_SERVER_AUTH_HASH = "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YQ"
 _DEFAULT_KDF_CONFIGURATION = KdfConfiguration(
     algorithm="argon2id", memory_kb=65536, iterations=3, parallelism=4

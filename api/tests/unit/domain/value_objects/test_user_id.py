@@ -3,8 +3,8 @@ from typing import cast
 
 import pytest
 
-from babylon.domain.exceptions import UserIdValidationError
-from babylon.domain.value_objects import UserId
+from babylon.auth.domain.exceptions import UserIdValidationError
+from babylon.auth.domain.value_objects import UserId
 
 
 class TestUserId:
